@@ -10,7 +10,7 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false)
     const router = useRouter()
 
-    async function handleSubmit(formData: FormData) {
+    async function handleAction(formData: FormData) {
         setIsLoading(true)
         setError(null)
 
@@ -20,8 +20,8 @@ export default function LoginPage() {
             setError(result.error)
             setIsLoading(false)
         } else {
-            router.push('/dashboard')
-            router.refresh()
+            // Recargar para que refresque la sesión del middleware
+            window.location.href = '/dashboard'
         }
     }
 
@@ -47,7 +47,7 @@ export default function LoginPage() {
                     </div>
                 )}
 
-                <form action={handleSubmit} className="space-y-6">
+                <form action={handleAction} className="space-y-6">
                     <div>
                         <label htmlFor="email" className="label">Correo Electrónico</label>
                         <div className="relative">
