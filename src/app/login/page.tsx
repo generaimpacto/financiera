@@ -19,7 +19,7 @@ export default function LoginPage() {
         if (result?.error) {
             setError(result.error)
             setIsLoading(false)
-        } else {
+        } else if (result?.success) {
             // Recargar para que refresque la sesión del middleware
             window.location.href = '/dashboard'
         }
