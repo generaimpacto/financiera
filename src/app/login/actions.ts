@@ -25,6 +25,6 @@ export async function loginAction(formData: FormData) {
         return { error: error.message }
     }
 
-    // Éxito, redirigir al dashboard
-    return { error: null }
+    // Éxito, en Vercel Server Actions a veces la cookie tarda en setearse.
+    redirect('/dashboard')
 }
