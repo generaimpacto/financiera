@@ -7,12 +7,17 @@ import { loginAction } from './actions'
 
 export default function LoginPage() {
     const [error, setError] = useState<string | null>(null)
+    const [successMsg, setSuccessMsg] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
+    const [isSignUpMode, setIsSignUpMode] = useState(false)
     const router = useRouter()
 
     async function handleAction(formData: FormData) {
         setIsLoading(true)
         setError(null)
+        setSuccessMsg(null)
+
+        formData.append('actionType', isSignUpMode ? 'signup' : 'login')
 
         const result = await loginAction(formData)
 
@@ -20,8 +25,13 @@ export default function LoginPage() {
             setError(result.error)
             setIsLoading(false)
         } else if (result?.success) {
-            // Recargar para que refresque la sesión del middleware
-            window.location.href = '/dashboard'
+            if (isSignUpMode) {
+                setSuccessMsg(result.message || 'Registro exitoso')
+                setIsSignUpMode(false) // Volver a modo login para entrar
+                setIsLoading(false)
+            } else {
+                window.location.href = '/dashboard'
+            }
         }
     }
 
@@ -36,9 +46,16 @@ export default function LoginPage() {
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--accent-color)] bg-opacity-10 text-[var(--accent-color)] mb-4">
                         <Lock size={32} />
                     </div>
-                    <h1 className="text-3xl font-bold mb-2">Bienvenido</h1>
-                    <p className="text-secondary">Ingresa a tu portal financiero privado</p>
+                    <h1 className="text-3xl font-bold mb-2">{isSignUpMode ? 'Regístrate' : 'Bienvenido'}</h1>
+                    <p className="text-secondary">{isSignUpMode ? 'Crea tu nueva cuenta' : 'Ingresa a tu portal financiero privado'}</p>
                 </div>
+
+                {successMsg && (
+                    <div className="bg-emerald-500 bg-opacity-10 border border-emerald-500/50 rounded-lg p-4 mb-6 flex items-start gap-3">
+                        <Lock className="text-emerald-500 shrink-0 mt-0.5" size={20} />
+                        <p className="text-sm text-emerald-200">{successMsg}</p>
+                    </div>
+                )}
 
                 {error && (
                     <div className="bg-red-500 bg-opacity-10 border border-red-500/50 rounded-lg p-4 mb-6 flex items-start gap-3">
@@ -88,14 +105,28 @@ export default function LoginPage() {
                         className="btn-primary w-full mt-4 flex items-center justify-center gap-2"
                     >
                         {isLoading ? (
-                            <span className="opacity-80">Ingresando...</span>
+                            <span className="opacity-80">Procesando...</span>
                         ) : (
                             <>
-                                <span>Ingresar al Dashboard</span>
+                                <span>{isSignUpMode ? 'Crear Cuenta' : 'Ingresar al Dashboard'}</span>
                                 <LogIn size={18} />
                             </>
                         )}
                     </button>
+
+                    <div className="text-center mt-6">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsSignUpMode(!isSignUpMode)
+                                setError(null)
+                                setSuccessMsg(null)
+                            }}
+                            className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                        >
+                            {isSignUpMode ? '¿Ya tienes cuenta? Inicia sesión aquí' : '¿No tienes cuenta? Regístrate gratis aquí'}
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
