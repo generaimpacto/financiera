@@ -22,8 +22,9 @@ export default async function DashboardPage() {
     const isAdmin = profile?.role === 'admin'
 
     // Fetch all profiles map for admin calculations
-    const { data: allProfiles } = await supabase.from('profiles').select('id, commission_percentage, role')
+    const { data: allProfiles } = await supabase.from('profiles').select('id, commission_percentage, role, business_name')
     const commissionMap = new Map(allProfiles?.map(p => [p.id, p.commission_percentage]) || [])
+    const nameMap = new Map(allProfiles?.map(p => [p.id, p.business_name || `Cliente ${p.id.split('-')[0]}`]) || [])
 
     // 2. Fetch Payments (Income) this month
     const { data: payments } = await supabase
@@ -35,7 +36,7 @@ export default async function DashboardPage() {
     // 3. Fetch Expenses this month
     const { data: expenses } = await supabase
         .from('expenses')
-        .select('id, amount, expense_date, description')
+        .select('id, amount, expense_date, description, user_id')
         .gte('expense_date', startOfMonth)
 
     const totalExpenses = expenses?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
@@ -47,14 +48,16 @@ export default async function DashboardPage() {
             date: p.payment_date,
             description: p.client_name,
             amount: Number(p.amount),
-            type: 'income'
+            type: 'income',
+            ownerName: nameMap.get(p.user_id) || ''
         })),
         ...(expenses || []).map(e => ({
             id: e.id,
             date: e.expense_date,
             description: e.description,
             amount: Number(e.amount),
-            type: 'expense'
+            type: 'expense',
+            ownerName: nameMap.get(e.user_id) || ''
         }))
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -188,6 +191,7 @@ export default async function DashboardPage() {
                             <thead>
                                 <tr className="bg-black/20 text-secondary text-sm">
                                     <th className="px-4 py-3 font-medium">Fecha</th>
+                                    {isAdmin && <th className="px-4 py-3 font-medium">Cliente</th>}
                                     <th className="px-4 py-3 font-medium">Descripción</th>
                                     <th className="px-4 py-3 font-medium">Monto</th>
                                     <th className="px-4 py-3 font-medium">Tipo</th>
@@ -198,6 +202,7 @@ export default async function DashboardPage() {
                                 {mergedTransactions.slice(0, 10).map((t, i) => (
                                     <tr key={i} className="border-b border-[var(--border-color)] text-sm group">
                                         <td className="px-4 py-3">{t.date}</td>
+                                        {isAdmin && <td className="px-4 py-3 text-blue-300 text-xs font-medium">{t.ownerName}</td>}
                                         <td className="px-4 py-3 text-gray-300">{t.description}</td>
                                         <td className={`px-4 py-3 font-bold ${t.type === 'income' ? 'text-emerald-400' : 'text-red-400'}`}>
                                             {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
@@ -227,7 +232,7 @@ export default async function DashboardPage() {
                                 ))}
                                 {mergedTransactions.length === 0 && (
                                     <tr>
-                                        <td colSpan={4} className="px-4 py-8 text-center text-secondary">
+                                        <td colSpan={isAdmin ? 6 : 5} className="px-4 py-8 text-center text-secondary">
                                             No hay movimientos registrados este mes
                                         </td>
                                     </tr>
