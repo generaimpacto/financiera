@@ -14,7 +14,7 @@ export default async function DashboardPage() {
     // 1. Fetch Profile (for role and commission percentage)
     const { data: profile } = await supabase
         .from('profiles')
-        .select('role, commission_percentage')
+        .select('role, commission_percentage, business_name')
         .eq('id', user?.id)
         .single()
 
@@ -126,6 +126,9 @@ export default async function DashboardPage() {
     return (
         <div className="animate-fade-in">
             <header className="mb-8">
+                {!isAdmin && profile?.business_name && (
+                    <p className="text-sm text-blue-400 font-medium mb-1">{profile.business_name}</p>
+                )}
                 <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
                     Resumen del Mes
                 </h1>
