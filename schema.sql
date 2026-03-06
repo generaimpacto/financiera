@@ -92,13 +92,25 @@ CREATE POLICY "Users can insert own payments"
   ON public.payments FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+CREATE POLICY "Admins can insert payments for any user"
+  ON public.payments FOR INSERT
+  WITH CHECK (public.is_admin());
+
 CREATE POLICY "Users can update own payments"
   ON public.payments FOR UPDATE
   USING (auth.uid() = user_id);
 
+CREATE POLICY "Admins can update any payment"
+  ON public.payments FOR UPDATE
+  USING (public.is_admin());
+
 CREATE POLICY "Users can delete own payments"
   ON public.payments FOR DELETE
   USING (auth.uid() = user_id);
+
+CREATE POLICY "Admins can delete any payment"
+  ON public.payments FOR DELETE
+  USING (public.is_admin());
 
 -- Expenses Policies
 CREATE POLICY "Users can view own expenses"
@@ -109,13 +121,25 @@ CREATE POLICY "Users can insert own expenses"
   ON public.expenses FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+CREATE POLICY "Admins can insert expenses for any user"
+  ON public.expenses FOR INSERT
+  WITH CHECK (public.is_admin());
+
 CREATE POLICY "Users can update own expenses"
   ON public.expenses FOR UPDATE
   USING (auth.uid() = user_id);
 
+CREATE POLICY "Admins can update any expense"
+  ON public.expenses FOR UPDATE
+  USING (public.is_admin());
+
 CREATE POLICY "Users can delete own expenses"
   ON public.expenses FOR DELETE
   USING (auth.uid() = user_id);
+
+CREATE POLICY "Admins can delete any expense"
+  ON public.expenses FOR DELETE
+  USING (public.is_admin());
 
 -- Storage: Receipts bucket
 INSERT INTO storage.buckets (id, name, public) VALUES ('receipts', 'receipts', true);
