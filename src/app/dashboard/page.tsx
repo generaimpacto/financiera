@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { Wallet, TrendingUp, TrendingDown, PercentCircle, Download, Receipt, Pencil, Trash2 } from 'lucide-react'
 import { deleteTransactionAction } from './actions'
+import { RevenueChart } from '@/components/RevenueChart'
 
 export default async function DashboardPage() {
     const supabase = await createClient()
@@ -57,6 +58,34 @@ export default async function DashboardPage() {
     // 4. Calculations
     const commissionToPay = (totalIncome * commissionPercentage) / 100
     const balance = totalIncome - totalExpenses - commissionToPay
+
+    // 5. Fetch 6-months Data for Chart
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString()
+    const { data: historicalPayments } = await supabase
+        .from('payments')
+        .select('amount, payment_date')
+        .gte('payment_date', sixMonthsAgo)
+        .order('payment_date', { ascending: true })
+
+    const monthlyData = new Map<string, number>()
+
+    // Initialize last 6 months with 0
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+        const monthName = new Intl.DateTimeFormat('es-ES', { month: 'short' }).format(d).toUpperCase()
+        monthlyData.set(monthName, 0)
+    }
+
+    // Aggregate real data
+    historicalPayments?.forEach(p => {
+        const d = new Date(p.payment_date)
+        const monthName = new Intl.DateTimeFormat('es-ES', { month: 'short' }).format(d).toUpperCase()
+        if (monthlyData.has(monthName)) {
+            monthlyData.set(monthName, monthlyData.get(monthName)! + Number(p.amount))
+        }
+    })
+
+    const chartData = Array.from(monthlyData, ([name, total]) => ({ name, total }))
 
     // Formatter plugin
     const formatCurrency = (val: number) =>
@@ -118,6 +147,11 @@ export default async function DashboardPage() {
                     </div>
                     <h3 className="text-3xl font-bold text-white relative z-10">{formatCurrency(commissionToPay)}</h3>
                 </div>
+            </div>
+
+            {/* Revenue Growth Chart */}
+            <div className="mb-6">
+                <RevenueChart data={chartData} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
