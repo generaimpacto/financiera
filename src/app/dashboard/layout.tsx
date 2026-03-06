@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import Link from 'next/link'
-import { LayoutDashboard, Receipt, TrendingDown, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Receipt, TrendingDown, Settings, LogOut, UserCog } from 'lucide-react'
 import { signOutAction } from '@/app/auth/actions'
 import { createClient } from '@/utils/supabase/server'
 
@@ -50,8 +50,13 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                         <span className="font-medium">Nuevo Egreso</span>
                     </Link>
 
+                    <Link href="/dashboard/profile" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white mt-4">
+                        <UserCog size={20} />
+                        <span className="font-medium">Mi Perfil</span>
+                    </Link>
+
                     {isAdmin && (
-                        <Link href="/dashboard/admin" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white mt-8">
+                        <Link href="/dashboard/admin" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white mt-2">
                             <Settings size={20} />
                             <span className="font-medium">Panel Admin</span>
                         </Link>

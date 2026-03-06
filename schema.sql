@@ -60,6 +60,10 @@ CREATE POLICY "Admins can update profiles"
   ON public.profiles FOR UPDATE
   USING (public.is_admin());
 
+CREATE POLICY "Users can update their own profile"
+  ON public.profiles FOR UPDATE
+  USING (auth.uid() = id);
+
 -- Insert profile automatically on user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
