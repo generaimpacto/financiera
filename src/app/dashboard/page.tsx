@@ -52,8 +52,8 @@ export default async function DashboardPage() {
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     // 4. Calculations
-    const balance = totalIncome - totalExpenses
     const commissionToPay = (totalIncome * commissionPercentage) / 100
+    const balance = totalIncome - totalExpenses - commissionToPay
 
     // Formatter plugin
     const formatCurrency = (val: number) =>
