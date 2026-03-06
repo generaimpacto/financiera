@@ -30,10 +30,26 @@ export default async function DashboardPage() {
     // 3. Fetch Expenses this month
     const { data: expenses } = await supabase
         .from('expenses')
-        .select('amount')
+        .select('amount, expense_date, description')
         .gte('expense_date', startOfMonth)
 
     const totalExpenses = expenses?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
+
+    // Combine and sort transactions
+    const mergedTransactions = [
+        ...(payments || []).map(p => ({
+            date: p.payment_date,
+            description: p.client_name,
+            amount: Number(p.amount),
+            type: 'income'
+        })),
+        ...(expenses || []).map(e => ({
+            date: e.expense_date,
+            description: e.description,
+            amount: Number(e.amount),
+            type: 'expense'
+        }))
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     // 4. Calculations
     const balance = totalIncome - totalExpenses
@@ -112,20 +128,26 @@ export default async function DashboardPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {payments?.slice(0, 5).map((p, i) => (
+                                {mergedTransactions.slice(0, 10).map((t, i) => (
                                     <tr key={i} className="border-b border-[var(--border-color)] text-sm">
-                                        <td className="px-4 py-3">{p.payment_date}</td>
-                                        <td className="px-4 py-3 text-gray-300">{p.client_name}</td>
-                                        <td className="px-4 py-3 font-bold text-emerald-400">{formatCurrency(p.amount)}</td>
+                                        <td className="px-4 py-3">{t.date}</td>
+                                        <td className="px-4 py-3 text-gray-300">{t.description}</td>
+                                        <td className={`px-4 py-3 font-bold ${t.type === 'income' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                            {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                                        </td>
                                         <td className="px-4 py-3 text-right">
-                                            <span className="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-xs">Pago</span>
+                                            {t.type === 'income' ? (
+                                                <span className="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-xs">Pago</span>
+                                            ) : (
+                                                <span className="bg-red-500/10 text-red-400 px-2 py-1 rounded text-xs">Egreso</span>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
-                                {(!payments || payments.length === 0) && (
+                                {mergedTransactions.length === 0 && (
                                     <tr>
                                         <td colSpan={4} className="px-4 py-8 text-center text-secondary">
-                                            No hay pagos registrados
+                                            No hay movimientos registrados este mes
                                         </td>
                                     </tr>
                                 )}
