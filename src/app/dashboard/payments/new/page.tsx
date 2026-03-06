@@ -7,6 +7,7 @@ import { Upload, FileImage, Loader2 } from 'lucide-react'
 export default function NewPaymentPage() {
     const [isUploading, setIsUploading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
 
     async function handleSubmit(formData: FormData) {
         setIsUploading(true)
@@ -83,20 +84,36 @@ export default function NewPaymentPage() {
 
                     <div>
                         <label className="label">Comprobante (Imagen)</label>
-                        <div className="mt-2 flex justify-center rounded-lg border border-dashed border-[var(--border-color)] px-6 py-10 bg-black/10 hover:bg-black/20 transition-colors">
+                        <div className="mt-2 flex justify-center rounded-lg border border-dashed border-[var(--border-color)] px-6 py-10 bg-black/10 hover:bg-black/20 transition-colors relative">
                             <div className="text-center">
-                                <FileImage className="mx-auto h-12 w-12 text-secondary" aria-hidden="true" />
-                                <div className="mt-4 flex text-sm leading-6 text-gray-400">
+                                <FileImage className={`mx-auto h-12 w-12 ${selectedFileName ? 'text-emerald-400' : 'text-secondary'}`} aria-hidden="true" />
+                                <div className="mt-4 flex text-sm leading-6 text-gray-400 justify-center">
                                     <label
                                         htmlFor="receipt"
                                         className="relative cursor-pointer rounded-md bg-transparent font-semibold text-[var(--accent-color)] focus-within:outline-none focus-within:ring-2 focus-within:ring-[var(--accent-color)] focus-within:ring-offset-2 focus-within:ring-offset-gray-900 hover:text-[var(--accent-hover)]"
                                     >
-                                        <span>Sube un archivo</span>
-                                        <input id="receipt" name="receipt" type="file" accept="image/*" className="sr-only" required />
+                                        <span>{selectedFileName ? 'Cambiar archivo' : 'Sube un archivo'}</span>
+                                        <input
+                                            id="receipt"
+                                            name="receipt"
+                                            type="file"
+                                            accept="image/*"
+                                            className="sr-only"
+                                            required
+                                            onChange={(e) => {
+                                                if (e.target.files && e.target.files.length > 0) {
+                                                    setSelectedFileName(e.target.files[0].name)
+                                                }
+                                            }}
+                                        />
                                     </label>
-                                    <p className="pl-1">o arrástralo y suéltalo</p>
+                                    {!selectedFileName && <p className="pl-1">o arrástralo y suéltalo</p>}
                                 </div>
-                                <p className="text-xs leading-5 text-gray-400">PNG, JPG up to 5MB</p>
+                                {selectedFileName ? (
+                                    <p className="text-sm font-medium text-emerald-400 mt-2">{selectedFileName}</p>
+                                ) : (
+                                    <p className="text-xs leading-5 text-gray-400">PNG, JPG up to 5MB</p>
+                                )}
                             </div>
                         </div>
                     </div>
