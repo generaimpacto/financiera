@@ -192,7 +192,6 @@ export default async function DashboardPage() {
                                 <tr className="bg-black/20 text-secondary text-sm">
                                     <th className="px-4 py-3 font-medium">Fecha</th>
                                     {isAdmin && <th className="px-4 py-3 font-medium">Cliente</th>}
-                                    <th className="px-4 py-3 font-medium">Descripción</th>
                                     <th className="px-4 py-3 font-medium">Monto</th>
                                     <th className="px-4 py-3 font-medium">Tipo</th>
                                     <th className="px-4 py-3 font-medium text-right">Acciones</th>
@@ -203,7 +202,6 @@ export default async function DashboardPage() {
                                     <tr key={i} className="border-b border-[var(--border-color)] text-sm group">
                                         <td className="px-4 py-3">{t.date}</td>
                                         {isAdmin && <td className="px-4 py-3 text-blue-300 text-xs font-medium">{t.ownerName}</td>}
-                                        <td className="px-4 py-3 text-gray-300">{t.description}</td>
                                         <td className={`px-4 py-3 font-bold ${t.type === 'income' ? 'text-emerald-400' : 'text-red-400'}`}>
                                             {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                                         </td>
