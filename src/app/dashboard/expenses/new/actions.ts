@@ -17,8 +17,19 @@ export async function addExpenseAction(formData: FormData) {
 
     if (!user) throw new Error('No autorizado')
 
+    // Check if admin is assigning to a specific client
+    const targetUserId = formData.get('targetUserId') as string
+    let assignToUserId = user.id
+
+    if (targetUserId && targetUserId !== '') {
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        if (profile?.role === 'admin') {
+            assignToUserId = targetUserId
+        }
+    }
+
     const { error } = await supabase.from('expenses').insert({
-        user_id: user.id,
+        user_id: assignToUserId,
         description,
         amount: parseFloat(amount),
         expense_date: date

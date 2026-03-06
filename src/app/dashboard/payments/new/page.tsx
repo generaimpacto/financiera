@@ -2,18 +2,41 @@
 
 import { useState } from 'react'
 import { addPaymentAction } from './actions'
-import { Upload, FileImage, Loader2 } from 'lucide-react'
+import { Upload, FileImage, Loader2, Users } from 'lucide-react'
 
-export default function NewPaymentPage() {
+interface ClientOption {
+    id: string
+    business_name: string | null
+}
+
+export default function NewPaymentPage({ searchParams }: { searchParams: any }) {
+    return <PaymentFormWrapper />
+}
+
+function PaymentFormWrapper() {
     const [isUploading, setIsUploading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
+    const [clients, setClients] = useState<ClientOption[]>([])
+    const [isAdmin, setIsAdmin] = useState(false)
+    const [loaded, setLoaded] = useState(false)
+
+    // Fetch admin status and client list on mount
+    if (!loaded && typeof window !== 'undefined') {
+        fetch('/api/admin-clients')
+            .then(res => res.json())
+            .then(data => {
+                setIsAdmin(data.isAdmin || false)
+                setClients(data.clients || [])
+                setLoaded(true)
+            })
+            .catch(() => setLoaded(true))
+    }
 
     async function handleSubmit(formData: FormData) {
         setIsUploading(true)
         setError(null)
         try {
-            // Usaremos una server action
             const result = await addPaymentAction(formData)
             if (result?.error) {
                 setError(result.error)
@@ -42,6 +65,30 @@ export default function NewPaymentPage() {
 
             <div className="glass-panel p-8">
                 <form action={handleSubmit} className="space-y-6">
+                    {/* Admin: Client Selector */}
+                    {isAdmin && clients.length > 0 && (
+                        <div className="bg-indigo-500/5 border border-indigo-500/30 rounded-lg p-4">
+                            <label htmlFor="targetUserId" className="label flex items-center gap-2 text-indigo-300">
+                                <Users size={16} />
+                                Asignar a Cliente
+                            </label>
+                            <select
+                                id="targetUserId"
+                                name="targetUserId"
+                                className="input-field bg-black/30 text-white border-indigo-500/30 mt-1"
+                                required
+                            >
+                                <option value="">— Seleccionar cliente —</option>
+                                {clients.map(c => (
+                                    <option key={c.id} value={c.id}>
+                                        {c.business_name || `Cliente ${c.id.split('-')[0]}`}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-indigo-300/60 mt-1">Como admin, este ingreso se cargará en la cuenta del cliente seleccionado.</p>
+                        </div>
+                    )}
+
                     <div>
                         <label htmlFor="clientName" className="label">Nombre del Cliente</label>
                         <input

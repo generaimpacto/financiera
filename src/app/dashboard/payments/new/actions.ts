@@ -18,9 +18,21 @@ export async function addPaymentAction(formData: FormData) {
 
     if (!user) return { error: 'No autorizado' }
 
+    // Check if admin is assigning to a specific client
+    const targetUserId = formData.get('targetUserId') as string
+    let assignToUserId = user.id
+
+    if (targetUserId && targetUserId !== '') {
+        // Verify the current user is an admin
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        if (profile?.role === 'admin') {
+            assignToUserId = targetUserId
+        }
+    }
+
     // 1. Upload image to Storage
     const fileExt = file.name.split('.').pop()
-    const fileName = `${user.id}-${Math.random()}.${fileExt}`
+    const fileName = `${assignToUserId}-${Math.random()}.${fileExt}`
     const filePath = `${fileName}`
 
     // Convert File to ArrayBuffer for supabase upload
@@ -44,7 +56,7 @@ export async function addPaymentAction(formData: FormData) {
 
     // 2. Insert into database
     const { error: insertError } = await supabase.from('payments').insert({
-        user_id: user.id,
+        user_id: assignToUserId,
         client_name: clientName,
         amount: parseFloat(amount),
         payment_date: date,
