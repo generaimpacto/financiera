@@ -6,6 +6,7 @@ CREATE TABLE public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   commission_percentage NUMERIC NOT NULL DEFAULT 0,
+  business_name TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -63,8 +64,13 @@ CREATE POLICY "Admins can update profiles"
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, role, commission_percentage)
-  VALUES (new.id, 'user', 0);
+  INSERT INTO public.profiles (id, role, commission_percentage, business_name)
+  VALUES (
+    new.id, 
+    'user', 
+    0, 
+    new.raw_user_meta_data->>'business_name'
+  );
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

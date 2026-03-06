@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogIn, Lock, Mail, AlertCircle } from 'lucide-react'
+import { LogIn, Lock, Mail, AlertCircle, Building2 } from 'lucide-react'
 import { loginAction } from './actions'
 
 export default function LoginPage() {
@@ -65,6 +65,26 @@ export default function LoginPage() {
                 )}
 
                 <form action={handleAction} className="space-y-6">
+                    {isSignUpMode && (
+                        <div className="animate-fade-in">
+                            <label htmlFor="businessName" className="label">Nombre del Negocio (o tu nombre)</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-secondary">
+                                    <Building2 size={18} />
+                                </div>
+                                <input
+                                    id="businessName"
+                                    name="businessName"
+                                    type="text"
+                                    required={isSignUpMode}
+                                    className="input-field pl-10 bg-black/20"
+                                    placeholder="Mi Tienda S.A."
+                                    minLength={3}
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     <div>
                         <label htmlFor="email" className="label">Correo Electrónico</label>
                         <div className="relative">

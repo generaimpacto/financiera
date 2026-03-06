@@ -6,10 +6,14 @@ import { redirect } from 'next/navigation'
 export async function loginAction(formData: FormData) {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
+    const businessName = formData.get('businessName') as string
     const isSignUp = formData.get('actionType') === 'signup'
 
     if (!email || !password) {
         return { error: 'Por favor completa todos los campos' }
+    }
+    if (isSignUp && !businessName) {
+        return { error: 'El nombre de negocio es requerido para registrarse' }
     }
 
     const supabase = await createClient()
@@ -18,6 +22,11 @@ export async function loginAction(formData: FormData) {
         const { error } = await supabase.auth.signUp({
             email,
             password,
+            options: {
+                data: {
+                    business_name: businessName
+                }
+            }
         })
 
         if (error) {
