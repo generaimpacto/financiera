@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { LayoutDashboard, Receipt, TrendingDown, Settings, LogOut, UserCog } from 'lucide-react'
 import { signOutAction } from '@/app/auth/actions'
 import { createClient } from '@/utils/supabase/server'
+import { ClientSwitcher } from '@/components/ClientSwitcher'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
     const supabase = await createClient()
@@ -16,6 +17,17 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         .single()
 
     const isAdmin = profile?.role === 'admin'
+
+    // Fetch client list for admin switcher
+    let clients: { id: string; business_name: string | null }[] = []
+    if (isAdmin) {
+        const { data } = await supabase
+            .from('profiles')
+            .select('id, business_name')
+            .eq('role', 'user')
+            .order('business_name', { ascending: true })
+        clients = data || []
+    }
 
     return (
         <div className="flex h-screen overflow-hidden bg-[var(--bg-primary)]">
@@ -37,6 +49,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                 </div>
 
                 <nav className="flex-1 px-4 space-y-2 mt-4">
+                    {isAdmin && clients.length > 0 && (
+                        <ClientSwitcher clients={clients} />
+                    )}
                     <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
                         <LayoutDashboard size={20} />
                         <span className="font-medium">Resumen</span>
