@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
+import { sendDiscordNotification, formatCurrencyForNotification } from '@/utils/discord'
 
 export async function addExpenseAction(formData: FormData) {
     const description = formData.get('description') as string
@@ -39,6 +40,11 @@ export async function addExpenseAction(formData: FormData) {
         console.error(error)
         throw new Error('Error al guardar el egreso')
     }
+
+    // Send Discord notification
+    const { data: ownerProfile } = await supabase.from('profiles').select('business_name').eq('id', assignToUserId).single()
+    const ownerName = ownerProfile?.business_name || 'Usuario'
+    await sendDiscordNotification(`📤 **${ownerName}** ha egresado: **${formatCurrencyForNotification(parseFloat(amount))}**`)
 
     redirect('/dashboard')
 }

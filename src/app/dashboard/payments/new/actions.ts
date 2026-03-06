@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
+import { sendDiscordNotification, formatCurrencyForNotification } from '@/utils/discord'
 
 export async function addPaymentAction(formData: FormData) {
     const clientName = formData.get('clientName') as string
@@ -65,9 +66,13 @@ export async function addPaymentAction(formData: FormData) {
 
     if (insertError) {
         console.error(insertError)
-        // Rollback is usually good here but skip for brevity
         return { error: 'Error al registrar el pago en la base de datos.' }
     }
+
+    // Send Discord notification
+    const { data: ownerProfile } = await supabase.from('profiles').select('business_name').eq('id', assignToUserId).single()
+    const ownerName = ownerProfile?.business_name || 'Usuario'
+    await sendDiscordNotification(`💰 **${ownerName}** ha ingresado: **${formatCurrencyForNotification(parseFloat(amount))}**`)
 
     redirect('/dashboard')
 }
