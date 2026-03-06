@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
-import { Wallet, TrendingUp, TrendingDown, PercentCircle, Download, Receipt } from 'lucide-react'
+import { Wallet, TrendingUp, TrendingDown, PercentCircle, Download, Receipt, Pencil, Trash2 } from 'lucide-react'
+import { deleteTransactionAction } from './actions'
 
 export default async function DashboardPage() {
     const supabase = await createClient()
@@ -21,7 +22,7 @@ export default async function DashboardPage() {
     // 2. Fetch Payments (Income) this month
     const { data: payments } = await supabase
         .from('payments')
-        .select('amount, payment_date, client_name')
+        .select('id, amount, payment_date, client_name')
         .gte('payment_date', startOfMonth)
         .order('payment_date', { ascending: false })
 
@@ -30,7 +31,7 @@ export default async function DashboardPage() {
     // 3. Fetch Expenses this month
     const { data: expenses } = await supabase
         .from('expenses')
-        .select('amount, expense_date, description')
+        .select('id, amount, expense_date, description')
         .gte('expense_date', startOfMonth)
 
     const totalExpenses = expenses?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
@@ -38,12 +39,14 @@ export default async function DashboardPage() {
     // Combine and sort transactions
     const mergedTransactions = [
         ...(payments || []).map(p => ({
+            id: p.id,
             date: p.payment_date,
             description: p.client_name,
             amount: Number(p.amount),
             type: 'income'
         })),
         ...(expenses || []).map(e => ({
+            id: e.id,
             date: e.expense_date,
             description: e.description,
             amount: Number(e.amount),
@@ -57,7 +60,12 @@ export default async function DashboardPage() {
 
     // Formatter plugin
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(val)
+        new Intl.NumberFormat('es-AR', {
+            style: 'currency',
+            currency: 'ARS',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(val)
 
     return (
         <div className="animate-fade-in">
@@ -122,25 +130,40 @@ export default async function DashboardPage() {
                             <thead>
                                 <tr className="bg-black/20 text-secondary text-sm">
                                     <th className="px-4 py-3 font-medium">Fecha</th>
-                                    <th className="px-4 py-3 font-medium">Cliente</th>
+                                    <th className="px-4 py-3 font-medium">Descripción</th>
                                     <th className="px-4 py-3 font-medium">Monto</th>
-                                    <th className="px-4 py-3 font-medium text-right">Tipo</th>
+                                    <th className="px-4 py-3 font-medium">Tipo</th>
+                                    <th className="px-4 py-3 font-medium text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {mergedTransactions.slice(0, 10).map((t, i) => (
-                                    <tr key={i} className="border-b border-[var(--border-color)] text-sm">
+                                    <tr key={i} className="border-b border-[var(--border-color)] text-sm group">
                                         <td className="px-4 py-3">{t.date}</td>
                                         <td className="px-4 py-3 text-gray-300">{t.description}</td>
                                         <td className={`px-4 py-3 font-bold ${t.type === 'income' ? 'text-emerald-400' : 'text-red-400'}`}>
                                             {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                                         </td>
-                                        <td className="px-4 py-3 text-right">
+                                        <td className="px-4 py-3">
                                             {t.type === 'income' ? (
                                                 <span className="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-xs">Pago</span>
                                             ) : (
                                                 <span className="bg-red-500/10 text-red-400 px-2 py-1 rounded text-xs">Egreso</span>
                                             )}
+                                        </td>
+                                        <td className="px-4 py-3 text-right">
+                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <a href={t.type === 'income' ? `/dashboard/payments/${t.id}/edit` : `/dashboard/expenses/${t.id}/edit`} className="p-1.5 text-blue-400 hover:bg-blue-500/20 rounded transition-colors" title="Editar">
+                                                    <Pencil size={16} />
+                                                </a>
+                                                <form action={deleteTransactionAction}>
+                                                    <input type="hidden" name="id" value={t.id} />
+                                                    <input type="hidden" name="type" value={t.type} />
+                                                    <button type="submit" className="p-1.5 text-red-400 hover:bg-red-500/20 rounded transition-colors" title="Eliminar">
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -175,9 +198,14 @@ export default async function DashboardPage() {
                             <label htmlFor="end" className="label text-xs">Fecha Fin</label>
                             <input type="date" id="end" name="end" required className="input-field text-sm py-2" defaultValue={new Date().toISOString().split('T')[0]} />
                         </div>
-                        <button type="submit" className="btn-primary py-2 text-sm w-full flex items-center justify-center gap-2">
-                            <Download size={16} /> Descargar Archivo ZIP
-                        </button>
+                        <div className="flex flex-col gap-2 pt-2">
+                            <button type="submit" className="btn-primary py-2 text-sm w-full flex items-center justify-center gap-2">
+                                <Download size={16} /> Descargar Archivo ZIP
+                            </button>
+                            <a href={`/api/export-receipts?start=${now.toISOString().split('T')[0]}&end=${now.toISOString().split('T')[0]}`} className="bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg py-2 text-sm w-full flex items-center justify-center gap-2 transition-colors">
+                                <Download size={16} /> Exportar comprobantes de hoy
+                            </a>
+                        </div>
                     </form>
                 </div>
             </div>
