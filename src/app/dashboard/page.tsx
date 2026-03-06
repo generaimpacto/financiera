@@ -257,7 +257,7 @@ export default async function DashboardPage() {
                                 <select name="userId" id="userId" className="input-field py-2 text-sm bg-black/20 text-white border-white/10" defaultValue="all">
                                     <option value="all">Todos los comprobantes (Mezclados)</option>
                                     {allProfiles?.filter(p => p.role === 'user').map(p => (
-                                        <option key={p.id} value={p.id}>Cliente ID: {p.id.split('-')[0]}</option>
+                                        <option key={p.id} value={p.id}>{p.business_name || `Cliente ${p.id.split('-')[0]}`}</option>
                                     ))}
                                 </select>
                             </div>
