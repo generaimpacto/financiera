@@ -16,11 +16,16 @@ export async function deleteTransactionAction(formData: FormData) {
 
     const tableName = type === 'income' ? 'payments' : 'expenses'
 
-    const { error } = await supabase
-        .from(tableName)
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id) // Security check to ensure owner
+    // Check if admin
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const isAdmin = profile?.role === 'admin'
+
+    let query = supabase.from(tableName).delete().eq('id', id)
+    if (!isAdmin) {
+        query = query.eq('user_id', user.id) // Security check: regular users can only delete own
+    }
+
+    const { error } = await query
 
     if (error) {
         console.error('Error deleting transaction:', error)
