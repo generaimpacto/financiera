@@ -11,23 +11,34 @@ export async function GET(request: NextRequest) {
         return new NextResponse('No autorizado', { status: 401 })
     }
 
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const isAdmin = profile?.role === 'admin'
+
     // Parse query params
     const searchParams = request.nextUrl.searchParams
     const start = searchParams.get('start')
     const end = searchParams.get('end')
+    const targetUserId = searchParams.get('userId')
 
     if (!start || !end) {
         return new NextResponse('Faltan fechas de inicio y fin', { status: 400 })
     }
 
     try {
-        // Busca pagos en el rango de fechas que tengan recibo
-        const { data: payments, error } = await supabase
+        let query = supabase
             .from('payments')
             .select('id, client_name, payment_date, receipt_url')
             .gte('payment_date', start)
             .lte('payment_date', end)
             .not('receipt_url', 'is', null)
+
+        if (isAdmin && targetUserId && targetUserId !== 'all') {
+            query = query.eq('user_id', targetUserId)
+        } else if (!isAdmin) {
+            query = query.eq('user_id', user.id)
+        }
+
+        const { data: payments, error } = await query
 
         if (error) throw error
 

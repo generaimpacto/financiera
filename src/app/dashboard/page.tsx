@@ -11,23 +11,26 @@ export default async function DashboardPage() {
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
-    // 1. Fetch Profile (for commission percentage)
+    // 1. Fetch Profile (for role and commission percentage)
     const { data: profile } = await supabase
         .from('profiles')
-        .select('commission_percentage')
+        .select('role, commission_percentage')
         .eq('id', user?.id)
         .single()
 
     const commissionPercentage = profile?.commission_percentage || 0
+    const isAdmin = profile?.role === 'admin'
+
+    // Fetch all profiles map for admin calculations
+    const { data: allProfiles } = await supabase.from('profiles').select('id, commission_percentage, role')
+    const commissionMap = new Map(allProfiles?.map(p => [p.id, p.commission_percentage]) || [])
 
     // 2. Fetch Payments (Income) this month
     const { data: payments } = await supabase
         .from('payments')
-        .select('id, amount, payment_date, client_name')
+        .select('id, amount, payment_date, client_name, user_id')
         .gte('payment_date', startOfMonth)
         .order('payment_date', { ascending: false })
-
-    const totalIncome = payments?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
 
     // 3. Fetch Expenses this month
     const { data: expenses } = await supabase
@@ -56,14 +59,30 @@ export default async function DashboardPage() {
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     // 4. Calculations
-    const commissionToPay = (totalIncome * commissionPercentage) / 100
-    const balance = totalIncome - totalExpenses - commissionToPay
+    let totalIncome = 0
+    let totalCommissions = 0
+
+    payments?.forEach(p => {
+        const amt = Number(p.amount)
+        totalIncome += amt
+        if (isAdmin) {
+            const commPct = commissionMap.get(p.user_id) || 0
+            totalCommissions += (amt * commPct) / 100
+        }
+    })
+
+    if (!isAdmin) {
+        totalCommissions = (totalIncome * commissionPercentage) / 100
+    }
+
+    const commissionToPay = totalCommissions
+    const balance = isAdmin ? totalCommissions : (totalIncome - totalExpenses - commissionToPay)
 
     // 5. Fetch 6-months Data for Chart
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString()
     const { data: historicalPayments } = await supabase
         .from('payments')
-        .select('amount, payment_date')
+        .select('amount, payment_date, user_id')
         .gte('payment_date', sixMonthsAgo)
         .order('payment_date', { ascending: true })
 
@@ -81,7 +100,12 @@ export default async function DashboardPage() {
         const d = new Date(p.payment_date)
         const monthName = new Intl.DateTimeFormat('es-ES', { month: 'short' }).format(d).toUpperCase()
         if (monthlyData.has(monthName)) {
-            monthlyData.set(monthName, monthlyData.get(monthName)! + Number(p.amount))
+            let valueToAdd = Number(p.amount)
+            if (isAdmin) {
+                const commPct = commissionMap.get(p.user_id) || 0
+                valueToAdd = (valueToAdd * commPct) / 100
+            }
+            monthlyData.set(monthName, monthlyData.get(monthName)! + valueToAdd)
         }
     })
 
@@ -112,7 +136,7 @@ export default async function DashboardPage() {
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <TrendingUp size={64} className="text-emerald-500" />
                     </div>
-                    <p className="text-secondary font-medium mb-1 relative z-10">Ingresos (Mes)</p>
+                    <p className="text-secondary font-medium mb-1 relative z-10">{isAdmin ? 'Volumen Generado' : 'Ingresos (Mes)'}</p>
                     <h3 className="text-3xl font-bold text-white relative z-10">{formatCurrency(totalIncome)}</h3>
                 </div>
 
@@ -130,7 +154,7 @@ export default async function DashboardPage() {
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <Wallet size={64} className="text-blue-500" />
                     </div>
-                    <p className="text-secondary font-medium mb-1 relative z-10">Balance Neto</p>
+                    <p className="text-secondary font-medium mb-1 relative z-10">{isAdmin ? 'Nuestras Ganancias' : 'Balance Neto'}</p>
                     <h3 className="text-3xl font-bold text-white relative z-10">{formatCurrency(balance)}</h3>
                 </div>
 
@@ -140,7 +164,7 @@ export default async function DashboardPage() {
                         <PercentCircle size={64} className="text-purple-500" />
                     </div>
                     <div className="flex justify-between items-center mb-1 relative z-10">
-                        <p className="text-secondary font-medium">Comisión a Pagar</p>
+                        <p className="text-secondary font-medium">{isAdmin ? 'Comisiones a Cobrar' : 'Comisión a Pagar'}</p>
                         <span className="bg-purple-500/20 text-purple-300 text-xs px-2 py-1 rounded font-bold">
                             {commissionPercentage}%
                         </span>
@@ -224,6 +248,17 @@ export default async function DashboardPage() {
                     </p>
 
                     <form method="GET" action="/api/export-receipts" className="space-y-4">
+                        {isAdmin && (
+                            <div>
+                                <label htmlFor="userId" className="label text-xs">Cliente a Exportar</label>
+                                <select name="userId" id="userId" className="input-field py-2 text-sm bg-black/20 text-white border-white/10" defaultValue="all">
+                                    <option value="all">Todos los comprobantes (Mezclados)</option>
+                                    {allProfiles?.filter(p => p.role === 'user').map(p => (
+                                        <option key={p.id} value={p.id}>Cliente ID: {p.id.split('-')[0]}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                         <div>
                             <label htmlFor="start" className="label text-xs">Fecha Inicio</label>
                             <input type="date" id="start" name="start" required className="input-field text-sm py-2" defaultValue={startOfMonth.split('T')[0]} />
@@ -236,7 +271,7 @@ export default async function DashboardPage() {
                             <button type="submit" className="btn-primary py-2 text-sm w-full flex items-center justify-center gap-2">
                                 <Download size={16} /> Descargar Archivo ZIP
                             </button>
-                            <a href={`/api/export-receipts?start=${now.toISOString().split('T')[0]}&end=${now.toISOString().split('T')[0]}`} className="bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg py-2 text-sm w-full flex items-center justify-center gap-2 transition-colors">
+                            <a href={`/api/export-receipts?start=${now.toISOString().split('T')[0]}&end=${now.toISOString().split('T')[0]}${isAdmin ? '&userId=all' : ''}`} className="bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg py-2 text-sm w-full flex items-center justify-center gap-2 transition-colors">
                                 <Download size={16} /> Exportar comprobantes de hoy
                             </a>
                         </div>
