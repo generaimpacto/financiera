@@ -168,9 +168,28 @@ export default async function MovementDetailPage({ params }: { params: Promise<{
                         </div>
                     </div>
 
-                    <div className="pt-4 border-t border-[var(--border-color)]">
-                        <p className="text-xs text-secondary italic">Los egresos no tienen comprobante adjunto.</p>
-                    </div>
+                    {expense.receipt_url ? (
+                        <div className="pt-4 border-t border-[var(--border-color)]">
+                            <div className="flex items-center gap-2 mb-3">
+                                <FileImage size={18} className="text-secondary" />
+                                <h3 className="font-bold text-white">Comprobante</h3>
+                            </div>
+                            <a href={expense.receipt_url} target="_blank" rel="noopener noreferrer" className="block">
+                                <div className="rounded-lg overflow-hidden border border-[var(--border-color)] hover:border-red-500/50 transition-colors cursor-pointer">
+                                    <img
+                                        src={expense.receipt_url}
+                                        alt="Comprobante de egreso"
+                                        className="w-full max-h-[500px] object-contain bg-black/30"
+                                    />
+                                </div>
+                                <p className="text-xs text-red-400 mt-2 text-center">Clic para abrir en tamaño completo</p>
+                            </a>
+                        </div>
+                    ) : (
+                        <div className="pt-4 border-t border-[var(--border-color)]">
+                            <p className="text-xs text-secondary italic">Este egreso no tiene comprobante adjunto.</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

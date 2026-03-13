@@ -32,7 +32,7 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
     // Fetch all expenses
     const { data: expenses } = await supabase
         .from('expenses')
-        .select('id, amount, expense_date, description, user_id')
+        .select('id, amount, expense_date, description, user_id, receipt_url')
         .order('expense_date', { ascending: false })
 
     // Merge and sort
@@ -45,7 +45,7 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
         ...(expenses || []).map(e => ({
             id: e.id, date: e.expense_date, description: e.description,
             amount: Number(e.amount), type: 'expense' as const,
-            ownerName: nameMap.get(e.user_id) || '', hasReceipt: false
+            ownerName: nameMap.get(e.user_id) || '', hasReceipt: !!e.receipt_url
         }))
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 

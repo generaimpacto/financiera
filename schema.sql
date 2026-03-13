@@ -28,6 +28,7 @@ CREATE TABLE public.expenses (
   description TEXT NOT NULL,
   amount NUMERIC NOT NULL,
   expense_date DATE NOT NULL,
+  receipt_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

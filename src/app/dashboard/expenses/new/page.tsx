@@ -1,28 +1,51 @@
-import { createClient } from '@/utils/supabase/server'
+'use client'
+
+import { useState } from 'react'
 import { addExpenseAction } from './actions'
-import { Users } from 'lucide-react'
+import { Upload, FileImage, Loader2, Users } from 'lucide-react'
 
-export default async function NewExpensePage() {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+interface ClientOption {
+    id: string
+    business_name: string | null
+}
 
-    // Check admin and get clients list
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user?.id)
-        .single()
+export default function NewExpensePage({ searchParams }: { searchParams: any }) {
+    return <ExpenseFormWrapper />
+}
 
-    const isAdmin = profile?.role === 'admin'
+function ExpenseFormWrapper() {
+    const [isUploading, setIsUploading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
+    const [clients, setClients] = useState<ClientOption[]>([])
+    const [isAdmin, setIsAdmin] = useState(false)
+    const [loaded, setLoaded] = useState(false)
 
-    let clients: { id: string; business_name: string | null }[] = []
-    if (isAdmin) {
-        const { data } = await supabase
-            .from('profiles')
-            .select('id, business_name')
-            .eq('role', 'user')
-            .order('business_name', { ascending: true })
-        clients = data || []
+    // Fetch admin status and client list on mount
+    if (!loaded && typeof window !== 'undefined') {
+        fetch('/api/admin-clients')
+            .then(res => res.json())
+            .then(data => {
+                setIsAdmin(data.isAdmin || false)
+                setClients(data.clients || [])
+                setLoaded(true)
+            })
+            .catch(() => setLoaded(true))
+    }
+
+    async function handleSubmit(formData: FormData) {
+        setIsUploading(true)
+        setError(null)
+        try {
+            const result = await addExpenseAction(formData)
+            if (result?.error) {
+                setError(result.error)
+            }
+        } catch (err: any) {
+            setError(err.message || 'Se produjo un error al cargar el egreso.')
+        } finally {
+            setIsUploading(false)
+        }
     }
 
     return (
@@ -31,11 +54,17 @@ export default async function NewExpensePage() {
                 <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-400 to-orange-400">
                     Registrar Egreso
                 </h1>
-                <p className="text-secondary mt-2">Añade un nuevo gasto{isAdmin ? ' a la cuenta de un cliente' : ' a tu cuenta'}</p>
+                <p className="text-secondary mt-2">Añade un nuevo gasto{isAdmin ? ' a la cuenta de un cliente' : ' a tu cuenta'} (comprobante opcional)</p>
             </header>
 
+            {error && (
+                <div className="bg-red-500/10 border border-red-500/50 text-red-200 p-4 rounded-lg mb-6">
+                    {error}
+                </div>
+            )}
+
             <div className="glass-panel p-8">
-                <form action={addExpenseAction} className="space-y-6">
+                <form action={handleSubmit} className="space-y-6">
                     {/* Admin: Client Selector */}
                     {isAdmin && clients.length > 0 && (
                         <div className="bg-indigo-500/5 border border-indigo-500/30 rounded-lg p-4">
@@ -100,9 +129,57 @@ export default async function NewExpensePage() {
                         </div>
                     </div>
 
+                    <div>
+                        <label className="label flex justify-between">
+                            <span>Comprobante (Imagen)</span>
+                            <span className="text-xs text-secondary font-normal">Opcional</span>
+                        </label>
+                        <div className="mt-2 flex justify-center rounded-lg border border-dashed border-[var(--border-color)] px-6 py-10 bg-black/10 hover:bg-black/20 transition-colors relative">
+                            <div className="text-center">
+                                <FileImage className={`mx-auto h-12 w-12 ${selectedFileName ? 'text-emerald-400' : 'text-secondary'}`} aria-hidden="true" />
+                                <div className="mt-4 flex text-sm leading-6 text-gray-400 justify-center">
+                                    <label
+                                        htmlFor="receipt"
+                                        className="relative cursor-pointer rounded-md bg-transparent font-semibold text-[var(--accent-color)] focus-within:outline-none focus-within:ring-2 focus-within:ring-[var(--accent-color)] focus-within:ring-offset-2 focus-within:ring-offset-gray-900 hover:text-[var(--accent-hover)]"
+                                    >
+                                        <span>{selectedFileName ? 'Cambiar archivo' : 'Sube un archivo'}</span>
+                                        <input
+                                            id="receipt"
+                                            name="receipt"
+                                            type="file"
+                                            accept="image/*"
+                                            className="sr-only"
+                                            onChange={(e) => {
+                                                if (e.target.files && e.target.files.length > 0) {
+                                                    setSelectedFileName(e.target.files[0].name)
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                    {!selectedFileName && <p className="pl-1">o arrástralo y suéltalo</p>}
+                                </div>
+                                {selectedFileName ? (
+                                    <p className="text-sm font-medium text-emerald-400 mt-2">{selectedFileName}</p>
+                                ) : (
+                                    <p className="text-xs leading-5 text-gray-400">PNG, JPG up to 5MB</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="pt-4 border-t border-[var(--border-color)]">
-                        <button type="submit" className="btn-primary">
-                            Guardar Egreso
+                        <button type="submit" disabled={isUploading} className="btn-primary">
+                            {isUploading ? (
+                                <>
+                                    <Loader2 className="animate-spin mr-2" size={20} />
+                                    Guardando y subiendo imagen...
+                                </>
+                            ) : (
+                                <>
+                                    <Upload className="mr-2" size={20} />
+                                    Guardar Egreso
+                                </>
+                            )}
                         </button>
                     </div>
                 </form>
