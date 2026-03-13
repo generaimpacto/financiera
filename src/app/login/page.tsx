@@ -30,7 +30,8 @@ export default function LoginPage() {
                 setIsSignUpMode(false) // Volver a modo login para entrar
                 setIsLoading(false)
             } else {
-                window.location.href = '/dashboard'
+                router.refresh()
+                router.push('/dashboard')
             }
         }
     }
