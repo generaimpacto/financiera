@@ -33,4 +33,6 @@ export async function deleteTransactionAction(formData: FormData) {
     }
 
     revalidatePath('/dashboard')
+    revalidatePath('/dashboard/movements')
+    revalidatePath('/dashboard/admin')
 }

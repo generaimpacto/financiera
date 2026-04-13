@@ -1,7 +1,8 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowUpRight, ArrowDownRight, Eye, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, Eye, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
+import { deleteTransactionAction } from '@/app/dashboard/actions'
 
 function formatCurrency(n: number) {
     return '$ ' + Math.round(n).toLocaleString('es-AR')
@@ -97,12 +98,29 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
                                         )}
                                     </td>
                                     <td className="px-5 py-3.5 text-right">
-                                        <Link
-                                            href={`/dashboard/movements/${t.type}/${t.id}`}
-                                            className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors text-xs font-medium"
-                                        >
-                                            <Eye size={14} /> Ver
-                                        </Link>
+                                        <div className="flex justify-end gap-2">
+                                            <Link
+                                                href={`/dashboard/movements/${t.type}/${t.id}`}
+                                                className="p-1.5 text-gray-400 hover:bg-white/10 rounded transition-colors"
+                                                title="Ver detalle"
+                                            >
+                                                <Eye size={16} />
+                                            </Link>
+                                            <a
+                                                href={t.type === 'payment' ? `/dashboard/payments/${t.id}/edit` : `/dashboard/expenses/${t.id}/edit`}
+                                                className="p-1.5 text-blue-400 hover:bg-blue-500/20 rounded transition-colors"
+                                                title="Editar"
+                                            >
+                                                <Pencil size={16} />
+                                            </a>
+                                            <form action={deleteTransactionAction}>
+                                                <input type="hidden" name="id" value={t.id} />
+                                                <input type="hidden" name="type" value={t.type === 'payment' ? 'income' : 'expense'} />
+                                                <button type="submit" className="p-1.5 text-red-400 hover:bg-red-500/20 rounded transition-colors" title="Eliminar">
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

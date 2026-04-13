@@ -1,7 +1,8 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Calendar, DollarSign, User, FileImage, Building2 } from 'lucide-react'
+import { ArrowLeft, Calendar, DollarSign, User, FileImage, Building2, Pencil, Trash2 } from 'lucide-react'
+import { deleteTransactionAction } from '@/app/dashboard/actions'
 
 function formatCurrency(n: number) {
     return '$ ' + Math.round(n).toLocaleString('es-AR')
@@ -44,6 +45,21 @@ export default async function MovementDetailPage({ params }: { params: Promise<{
                             <div>
                                 <span className="bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider">Ingreso</span>
                                 <h1 className="text-2xl font-bold text-white mt-3">{formatCurrency(payment.amount)}</h1>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    href={`/dashboard/payments/${id}/edit`}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors text-sm font-medium"
+                                >
+                                    <Pencil size={16} /> Editar
+                                </Link>
+                                <form action={deleteTransactionAction}>
+                                    <input type="hidden" name="id" value={id} />
+                                    <input type="hidden" name="type" value="income" />
+                                    <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors text-sm font-medium">
+                                        <Trash2 size={16} /> Eliminar
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -132,6 +148,21 @@ export default async function MovementDetailPage({ params }: { params: Promise<{
                         <div>
                             <span className="bg-red-500/10 text-red-400 px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider">Egreso</span>
                             <h1 className="text-2xl font-bold text-white mt-3">{formatCurrency(expense.amount)}</h1>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Link
+                                href={`/dashboard/expenses/${id}/edit`}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors text-sm font-medium"
+                            >
+                                <Pencil size={16} /> Editar
+                            </Link>
+                            <form action={deleteTransactionAction}>
+                                <input type="hidden" name="id" value={id} />
+                                <input type="hidden" name="type" value="expense" />
+                                <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors text-sm font-medium">
+                                    <Trash2 size={16} /> Eliminar
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
