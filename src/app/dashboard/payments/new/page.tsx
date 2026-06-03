@@ -40,10 +40,13 @@ function PaymentFormWrapper() {
             const result = await addPaymentAction(formData)
             if (result?.error) {
                 setError(result.error)
+                setIsUploading(false)
             }
         } catch (err: any) {
+            if (err.digest?.startsWith('NEXT_REDIRECT') || err.message === 'NEXT_REDIRECT') {
+                throw err
+            }
             setError(err.message || 'Se produjo un error al cargar el pago.')
-        } finally {
             setIsUploading(false)
         }
     }

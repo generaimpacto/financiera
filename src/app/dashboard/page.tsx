@@ -1,7 +1,8 @@
 import { createClient } from '@/utils/supabase/server'
-import { Wallet, TrendingUp, TrendingDown, PercentCircle, Download, Receipt, Pencil, Trash2 } from 'lucide-react'
+import { Wallet, TrendingUp, TrendingDown, PercentCircle, Download, Receipt, Pencil, Trash2, CalendarRange } from 'lucide-react'
 import { deleteTransactionAction } from './actions'
 import { RevenueChart } from '@/components/RevenueChart'
+import Link from 'next/link'
 
 export default async function DashboardPage() {
     const supabase = await createClient()
@@ -26,18 +27,16 @@ export default async function DashboardPage() {
     const commissionMap = new Map(allProfiles?.map(p => [p.id, p.commission_percentage]) || [])
     const nameMap = new Map(allProfiles?.map(p => [p.id, p.business_name || `Cliente ${p.id.split('-')[0]}`]) || [])
 
-    // 2. Fetch Payments (Income) this month
+    // 2. Fetch ALL Payments (Income)
     const { data: payments } = await supabase
         .from('payments')
         .select('id, amount, payment_date, client_name, user_id')
-        .gte('payment_date', startOfMonth)
         .order('payment_date', { ascending: false })
 
-    // 3. Fetch Expenses this month
+    // 3. Fetch ALL Expenses
     const { data: expenses } = await supabase
         .from('expenses')
         .select('id, amount, expense_date, description, user_id')
-        .gte('expense_date', startOfMonth)
 
     const totalExpenses = expenses?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
 
@@ -129,10 +128,21 @@ export default async function DashboardPage() {
                 {!isAdmin && profile?.business_name && (
                     <p className="text-sm text-blue-400 font-medium mb-1">{profile.business_name}</p>
                 )}
-                <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-                    Resumen del Mes
-                </h1>
-                <p className="text-secondary mt-2">Visión global de tus finanzas en <b>{new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(now)}</b></p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                            Resumen General
+                        </h1>
+                        <p className="text-secondary mt-2">Acumulado total de todas tus finanzas</p>
+                    </div>
+                    <Link
+                        href="/dashboard/monthly-summary"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors text-sm font-medium text-gray-300 hover:text-white"
+                    >
+                        <CalendarRange size={18} />
+                        Resumen Mensual
+                    </Link>
+                </div>
             </header>
 
             {/* Stats Cards */}
@@ -142,7 +152,7 @@ export default async function DashboardPage() {
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <TrendingUp size={64} className="text-emerald-500" />
                     </div>
-                    <p className="text-secondary font-medium mb-1 relative z-10">{isAdmin ? 'Volumen Generado' : 'Ingresos (Mes)'}</p>
+                    <p className="text-secondary font-medium mb-1 relative z-10">{isAdmin ? 'Volumen Generado (Total)' : 'Ingresos (Total)'}</p>
                     <h3 className="text-3xl font-bold text-white relative z-10">{formatCurrency(totalIncome)}</h3>
                 </div>
 
@@ -151,7 +161,7 @@ export default async function DashboardPage() {
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <TrendingDown size={64} className="text-red-500" />
                     </div>
-                    <p className="text-secondary font-medium mb-1 relative z-10">Egresos (Mes)</p>
+                    <p className="text-secondary font-medium mb-1 relative z-10">Egresos (Total)</p>
                     <h3 className="text-3xl font-bold text-white relative z-10">{formatCurrency(totalExpenses)}</h3>
                 </div>
 
@@ -234,7 +244,7 @@ export default async function DashboardPage() {
                                 {mergedTransactions.length === 0 && (
                                     <tr>
                                         <td colSpan={isAdmin ? 6 : 5} className="px-4 py-8 text-center text-secondary">
-                                            No hay movimientos registrados este mes
+                                            No hay movimientos registrados
                                         </td>
                                     </tr>
                                 )}

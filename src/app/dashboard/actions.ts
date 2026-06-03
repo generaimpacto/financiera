@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 
 export async function deleteTransactionAction(formData: FormData) {
     const id = formData.get('id') as string
@@ -32,7 +33,13 @@ export async function deleteTransactionAction(formData: FormData) {
         throw new Error('Error al eliminar el movimiento')
     }
 
+    revalidatePath('/dashboard', 'layout')
     revalidatePath('/dashboard')
     revalidatePath('/dashboard/movements')
     revalidatePath('/dashboard/admin')
+}
+
+export async function deleteTransactionAndRedirectAction(formData: FormData) {
+    await deleteTransactionAction(formData)
+    redirect('/dashboard/movements')
 }

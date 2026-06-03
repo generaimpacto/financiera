@@ -34,20 +34,18 @@ export default async function AdminUserDashboardPage(props: { params: Promise<{ 
     const commissionPercentage = profile?.commission_percentage || 0
     const businessName = profile?.business_name || 'Sin Nombre'
 
-    // 2. Fetch Payments (Income) this month for Target User
+    // 2. Fetch ALL Payments (Income) for Target User
     const { data: payments } = await supabase
         .from('payments')
         .select('id, amount, payment_date, client_name')
         .eq('user_id', targetUserId)
-        .gte('payment_date', startOfMonth)
         .order('payment_date', { ascending: false })
 
-    // 3. Fetch Expenses this month for Target User
+    // 3. Fetch ALL Expenses for Target User
     const { data: expenses } = await supabase
         .from('expenses')
         .select('id, amount, expense_date, description')
         .eq('user_id', targetUserId)
-        .gte('expense_date', startOfMonth)
 
     const totalIncome = payments?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
     const totalExpenses = expenses?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
@@ -134,7 +132,7 @@ export default async function AdminUserDashboardPage(props: { params: Promise<{ 
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <TrendingUp size={64} className="text-emerald-500" />
                     </div>
-                    <p className="text-secondary font-medium mb-1 relative z-10">Ingresos (Mes)</p>
+                    <p className="text-secondary font-medium mb-1 relative z-10">Ingresos (Total)</p>
                     <h3 className="text-3xl font-bold text-white relative z-10">{formatCurrency(totalIncome)}</h3>
                 </div>
 
@@ -143,7 +141,7 @@ export default async function AdminUserDashboardPage(props: { params: Promise<{ 
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <TrendingDown size={64} className="text-red-500" />
                     </div>
-                    <p className="text-secondary font-medium mb-1 relative z-10">Egresos (Mes)</p>
+                    <p className="text-secondary font-medium mb-1 relative z-10">Egresos (Total)</p>
                     <h3 className="text-3xl font-bold text-white relative z-10">{formatCurrency(totalExpenses)}</h3>
                 </div>
 
@@ -226,7 +224,7 @@ export default async function AdminUserDashboardPage(props: { params: Promise<{ 
                                 {mergedTransactions.length === 0 && (
                                     <tr>
                                         <td colSpan={5} className="px-4 py-8 text-center text-secondary">
-                                            No hay movimientos registrados este mes
+                                            No hay movimientos registrados
                                         </td>
                                     </tr>
                                 )}

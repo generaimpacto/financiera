@@ -8,12 +8,16 @@ export async function getPaymentAction(id: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'No autorizado' }
 
-    const { data, error } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single()
+    // Check if admin
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const isAdmin = profile?.role === 'admin'
+
+    let query = supabase.from('payments').select('*').eq('id', id)
+    if (!isAdmin) {
+        query = query.eq('user_id', user.id)
+    }
+
+    const { data, error } = await query.single()
 
     if (error) return { error: 'No se encontró el pago' }
     return data
@@ -33,7 +37,11 @@ export async function updatePaymentAction(formData: FormData) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'No autorizado' }
 
-    const { error } = await supabase
+    // Check if admin
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const isAdmin = profile?.role === 'admin'
+
+    let query = supabase
         .from('payments')
         .update({
             client_name: clientName,
@@ -41,14 +49,21 @@ export async function updatePaymentAction(formData: FormData) {
             payment_date: date
         })
         .eq('id', id)
-        .eq('user_id', user.id)
+
+    if (!isAdmin) {
+        query = query.eq('user_id', user.id)
+    }
+
+    const { error } = await query
 
     if (error) {
         console.error(error)
         return { error: 'Error al actualizar en la base de datos.' }
     }
 
+    revalidatePath('/dashboard', 'layout')
     revalidatePath('/dashboard')
+    revalidatePath('/dashboard/movements')
     revalidatePath(`/dashboard/payments/${id}/edit`)
     return { success: true }
 }

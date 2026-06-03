@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, DollarSign, User, FileImage, Building2, Pencil, Trash2 } from 'lucide-react'
-import { deleteTransactionAction } from '@/app/dashboard/actions'
+import { deleteTransactionAndRedirectAction } from '@/app/dashboard/actions'
 
 function formatCurrency(n: number) {
     return '$ ' + Math.round(n).toLocaleString('es-AR')
@@ -53,7 +53,7 @@ export default async function MovementDetailPage({ params }: { params: Promise<{
                                 >
                                     <Pencil size={16} /> Editar
                                 </Link>
-                                <form action={deleteTransactionAction}>
+                                <form action={deleteTransactionAndRedirectAction}>
                                     <input type="hidden" name="id" value={id} />
                                     <input type="hidden" name="type" value="income" />
                                     <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors text-sm font-medium">
@@ -156,7 +156,7 @@ export default async function MovementDetailPage({ params }: { params: Promise<{
                             >
                                 <Pencil size={16} /> Editar
                             </Link>
-                            <form action={deleteTransactionAction}>
+                            <form action={deleteTransactionAndRedirectAction}>
                                 <input type="hidden" name="id" value={id} />
                                 <input type="hidden" name="type" value="expense" />
                                 <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors text-sm font-medium">
