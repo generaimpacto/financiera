@@ -3,8 +3,9 @@ import { Wallet, TrendingUp, TrendingDown, PercentCircle, Download, Receipt, Pen
 import { deleteTransactionAction } from './actions'
 import { RevenueChart } from '@/components/RevenueChart'
 import Link from 'next/link'
+import { DashboardClientSelector } from '@/components/DashboardClientSelector'
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ clientId?: string }> }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -27,6 +28,20 @@ export default async function DashboardPage() {
     const commissionMap = new Map(allProfiles?.map(p => [p.id, p.commission_percentage]) || [])
     const nameMap = new Map(allProfiles?.map(p => [p.id, p.business_name || `Cliente ${p.id.split('-')[0]}`]) || [])
 
+    const clients = allProfiles?.filter(p => p.role === 'user') || []
+
+    const params = await searchParams
+    let activeClientId = params.clientId
+
+    if (isAdmin) {
+        if (!activeClientId) {
+            // Default to the first client
+            activeClientId = clients.length > 0 ? clients[0].id : 'all'
+        }
+    } else {
+        activeClientId = user?.id
+    }
+
     // 2. Fetch ALL Payments (Income)
     const { data: payments } = await supabase
         .from('payments')
@@ -38,11 +53,16 @@ export default async function DashboardPage() {
         .from('expenses')
         .select('id, amount, expense_date, description, user_id')
 
-    const totalExpenses = expenses?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
+    // Filter data based on selected client (if activeClientId is not 'all')
+    const showAll = activeClientId === 'all'
+    const filteredPayments = showAll ? (payments || []) : (payments || []).filter(p => p.user_id === activeClientId)
+    const filteredExpenses = showAll ? (expenses || []) : (expenses || []).filter(e => e.user_id === activeClientId)
+
+    const totalExpenses = filteredExpenses.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
 
     // Combine and sort transactions
     const mergedTransactions = [
-        ...(payments || []).map(p => ({
+        ...filteredPayments.map(p => ({
             id: p.id,
             date: p.payment_date,
             description: p.client_name,
@@ -50,7 +70,7 @@ export default async function DashboardPage() {
             type: 'income',
             ownerName: nameMap.get(p.user_id) || ''
         })),
-        ...(expenses || []).map(e => ({
+        ...filteredExpenses.map(e => ({
             id: e.id,
             date: e.expense_date,
             description: e.description,
@@ -64,7 +84,7 @@ export default async function DashboardPage() {
     let totalIncome = 0
     let totalCommissions = 0
 
-    payments?.forEach(p => {
+    filteredPayments.forEach(p => {
         const amt = Number(p.amount)
         totalIncome += amt
         if (isAdmin) {
@@ -88,6 +108,8 @@ export default async function DashboardPage() {
         .gte('payment_date', sixMonthsAgo)
         .order('payment_date', { ascending: true })
 
+    const filteredHistoricalPayments = showAll ? (historicalPayments || []) : (historicalPayments || []).filter(p => p.user_id === activeClientId)
+
     const monthlyData = new Map<string, number>()
 
     // Initialize last 6 months with 0
@@ -98,7 +120,7 @@ export default async function DashboardPage() {
     }
 
     // Aggregate real data
-    historicalPayments?.forEach(p => {
+    filteredHistoricalPayments.forEach(p => {
         const d = new Date(p.payment_date)
         const monthName = new Intl.DateTimeFormat('es-ES', { month: 'short' }).format(d).toUpperCase()
         if (monthlyData.has(monthName)) {
@@ -122,26 +144,37 @@ export default async function DashboardPage() {
             maximumFractionDigits: 0
         }).format(val)
 
+    const activeClientName = clients.find(c => c.id === activeClientId)?.business_name || `Cliente ${activeClientId?.split('-')[0]}`
+
     return (
         <div className="animate-fade-in">
             <header className="mb-8">
                 {!isAdmin && profile?.business_name && (
                     <p className="text-sm text-blue-400 font-medium mb-1">{profile.business_name}</p>
                 )}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-                            Resumen General
+                            Resumen {isAdmin && !showAll ? 'por Cliente' : 'General'}
                         </h1>
-                        <p className="text-secondary mt-2">Acumulado total de todas tus finanzas</p>
+                        <p className="text-secondary mt-2">
+                            {isAdmin 
+                                ? (showAll ? 'Acumulado consolidado de todos los clientes' : `Mostrando datos de: ${activeClientName}`) 
+                                : 'Acumulado total de todas tus finanzas'}
+                        </p>
                     </div>
-                    <Link
-                        href="/dashboard/monthly-summary"
-                        className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors text-sm font-medium text-gray-300 hover:text-white"
-                    >
-                        <CalendarRange size={18} />
-                        Resumen Mensual
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-3">
+                        {isAdmin && clients.length > 0 && (
+                            <DashboardClientSelector clients={clients} activeClientId={activeClientId || ''} />
+                        )}
+                        <Link
+                            href="/dashboard/monthly-summary"
+                            className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors text-sm font-medium text-gray-300 hover:text-white"
+                        >
+                            <CalendarRange size={18} />
+                            Resumen Mensual
+                        </Link>
+                    </div>
                 </div>
             </header>
 
