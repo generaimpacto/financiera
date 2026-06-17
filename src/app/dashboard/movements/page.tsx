@@ -59,10 +59,10 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
     return (
         <div className="animate-fade-in max-w-5xl mx-auto">
             <header className="mb-8">
-                <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400">
-                    Movimientos
+                <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                    Comprobantes
                 </h1>
-                <p className="text-secondary mt-2">Historial completo de ingresos y egresos — {all.length} registros</p>
+                <p className="text-secondary mt-2">Pagos y egresos con comprobante — {all.length} registros</p>
             </header>
 
             <div className="glass-panel overflow-hidden">

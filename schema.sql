@@ -154,3 +154,27 @@ CREATE POLICY "Public can view receipts"
 ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'receipts');
+
+-- ─────────────────────────────────────────────────────────────
+-- Table: movements (libro unificado de ingresos y egresos — agencia + clientes)
+-- Ver migrations/001-movements.sql para el detalle de policies.
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.movements (
+  id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  type           TEXT NOT NULL CHECK (type IN ('income', 'expense')),
+  amount         NUMERIC NOT NULL CHECK (amount > 0),
+  movement_date  DATE NOT NULL DEFAULT CURRENT_DATE,
+  origin         TEXT,
+  scope          TEXT NOT NULL DEFAULT 'agency' CHECK (scope IN ('agency', 'client')),
+  client_id      UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  client_name    TEXT,
+  concept        TEXT,
+  payment_method TEXT NOT NULL DEFAULT 'transferencia'
+                   CHECK (payment_method IN ('efectivo','transferencia','tarjeta','debito','cheque','mercadopago','cripto','otro')),
+  notes          TEXT,
+  receipt_url    TEXT,
+  created_by     UUID NOT NULL REFERENCES auth.users(id),
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE public.movements ENABLE ROW LEVEL SECURITY;
+-- SELECT: admin todo; cliente lo suyo. INSERT/UPDATE/DELETE: solo admin.

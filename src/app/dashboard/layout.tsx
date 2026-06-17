@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import Link from 'next/link'
-import { LayoutDashboard, Receipt, TrendingDown, Settings, LogOut, UserCog, List, CalendarRange } from 'lucide-react'
+import { LayoutDashboard, Receipt, TrendingDown, Settings, LogOut, UserCog, List, CalendarRange, ArrowLeftRight } from 'lucide-react'
 import { signOutAction } from '@/app/auth/actions'
 import { createClient } from '@/utils/supabase/server'
 import { ClientSwitcher } from '@/components/ClientSwitcher'
@@ -56,9 +56,13 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                         <LayoutDashboard size={20} />
                         <span className="font-medium">Resumen</span>
                     </Link>
+                    <Link href="/dashboard/ledger" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
+                        <ArrowLeftRight size={20} />
+                        <span className="font-medium">Movimientos</span>
+                    </Link>
                     <Link href="/dashboard/movements" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
                         <List size={20} />
-                        <span className="font-medium">Movimientos</span>
+                        <span className="font-medium">Comprobantes</span>
                     </Link>
                     <Link href="/dashboard/monthly-summary" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
                         <CalendarRange size={20} />
