@@ -55,38 +55,38 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                     {isAdmin && clients.length > 0 && (
                         <ClientSwitcher clients={clients} currentClientId={viewClientId} />
                     )}
-                    <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
+                    <Link href="/dashboard" prefetch={false} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
                         <LayoutDashboard size={20} />
                         <span className="font-medium">Resumen</span>
                     </Link>
-                    <Link href="/dashboard/ledger" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
+                    <Link href="/dashboard/ledger" prefetch={false} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
                         <ArrowLeftRight size={20} />
                         <span className="font-medium">Movimientos</span>
                     </Link>
-                    <Link href="/dashboard/movements" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
+                    <Link href="/dashboard/movements" prefetch={false} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
                         <List size={20} />
                         <span className="font-medium">Comprobantes</span>
                     </Link>
-                    <Link href="/dashboard/monthly-summary" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
+                    <Link href="/dashboard/monthly-summary" prefetch={false} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
                         <CalendarRange size={20} />
                         <span className="font-medium">Resumen Mensual</span>
                     </Link>
-                    <Link href="/dashboard/payments/new" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
+                    <Link href="/dashboard/payments/new" prefetch={false} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
                         <Receipt size={20} />
                         <span className="font-medium">Nuevo Ingreso</span>
                     </Link>
-                    <Link href="/dashboard/expenses/new" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
+                    <Link href="/dashboard/expenses/new" prefetch={false} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
                         <TrendingDown size={20} />
                         <span className="font-medium">Nuevo Egreso</span>
                     </Link>
 
-                    <Link href="/dashboard/profile" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white mt-4">
+                    <Link href="/dashboard/profile" prefetch={false} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white mt-4">
                         <UserCog size={20} />
                         <span className="font-medium">Mi Perfil</span>
                     </Link>
 
                     {isAdmin && (
-                        <Link href="/dashboard/admin" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white mt-2">
+                        <Link href="/dashboard/admin" prefetch={false} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white mt-2">
                             <Settings size={20} />
                             <span className="font-medium">Panel Admin</span>
                         </Link>

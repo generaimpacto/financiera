@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
 import { sendDiscordNotification, formatCurrencyForNotification } from '@/utils/discord'
 
 export async function addExpenseAction(formData: FormData) {
@@ -71,10 +72,10 @@ export async function addExpenseAction(formData: FormData) {
         return { error: 'Error al guardar el egreso en la base de datos' }
     }
 
-    // Send Discord notification
+    // Notificación a Discord en segundo plano (no bloquea el redirect).
     const { data: ownerProfile } = await supabase.from('profiles').select('business_name').eq('id', assignToUserId).single()
     const ownerName = ownerProfile?.business_name || 'Usuario'
-    await sendDiscordNotification(`📤 **${ownerName}** ha egresado: **${formatCurrencyForNotification(parseFloat(amount))}**`)
+    after(() => sendDiscordNotification(`📤 **${ownerName}** ha egresado: **${formatCurrencyForNotification(parseFloat(amount))}**`))
 
     redirect('/dashboard')
 }

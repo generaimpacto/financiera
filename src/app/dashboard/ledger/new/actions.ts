@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import { sendDiscordNotification, formatCurrencyForNotification } from '@/utils/discord'
 
 const METODOS = ['efectivo', 'transferencia', 'tarjeta', 'debito', 'cheque', 'mercadopago', 'cripto', 'otro']
@@ -91,9 +92,11 @@ export async function addMovementAction(formData: FormData) {
 
     const emoji = type === 'income' ? '🟢 Ingreso' : '🔴 Egreso'
     const quien = scope === 'client' ? (clientName || 'cliente') : 'agencia'
-    await sendDiscordNotification(
-        `${emoji} (${quien}): **${formatCurrencyForNotification(amountNum)}**${concept ? ` · ${concept}` : ''}`
-    ).catch(() => {})
+    after(() =>
+        sendDiscordNotification(
+            `${emoji} (${quien}): **${formatCurrencyForNotification(amountNum)}**${concept ? ` · ${concept}` : ''}`
+        )
+    )
 
     revalidatePath('/dashboard/ledger')
     redirect('/dashboard/ledger')

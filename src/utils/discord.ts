@@ -8,7 +8,8 @@ export async function sendDiscordNotification(message: string) {
             body: JSON.stringify({
                 content: message,
                 username: 'Finanzas Pro',
-            })
+            }),
+            signal: AbortSignal.timeout(3000),
         })
     } catch (error) {
         // Silently fail - notifications should not block the main flow
