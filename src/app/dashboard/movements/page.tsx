@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowUpRight, ArrowDownRight, Eye, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
 import { deleteTransactionAction } from '@/app/dashboard/actions'
+import { getViewClientId } from '@/lib/viewClient'
 
 function formatCurrency(n: number) {
     return '$ ' + Math.round(n).toLocaleString('es-AR')
@@ -24,17 +25,24 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
         nameMap = new Map(allProfiles?.map(p => [p.id, p.business_name || `Cliente ${p.id.split('-')[0]}`]) || [])
     }
 
-    // Fetch all payments
-    const { data: payments } = await supabase
+    // "Ver como cliente": filtrar a ese cliente si está seleccionado.
+    const viewClientId = isAdmin ? await getViewClientId() : ''
+
+    // Fetch payments
+    let pq = supabase
         .from('payments')
         .select('id, amount, payment_date, client_name, user_id, receipt_url')
         .order('payment_date', { ascending: false })
+    if (viewClientId) pq = pq.eq('user_id', viewClientId)
+    const { data: payments } = await pq
 
-    // Fetch all expenses
-    const { data: expenses } = await supabase
+    // Fetch expenses
+    let eq = supabase
         .from('expenses')
         .select('id, amount, expense_date, description, user_id, receipt_url')
         .order('expense_date', { ascending: false })
+    if (viewClientId) eq = eq.eq('user_id', viewClientId)
+    const { data: expenses } = await eq
 
     // Merge and sort
     const all = [

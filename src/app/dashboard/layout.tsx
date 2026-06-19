@@ -4,6 +4,7 @@ import { LayoutDashboard, Receipt, TrendingDown, Settings, LogOut, UserCog, List
 import { signOutAction } from '@/app/auth/actions'
 import { createClient } from '@/utils/supabase/server'
 import { ClientSwitcher } from '@/components/ClientSwitcher'
+import { getViewClientId } from '@/lib/viewClient'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
     const supabase = await createClient()
@@ -29,6 +30,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         clients = data || []
     }
 
+    const viewClientId = isAdmin ? await getViewClientId() : ''
+
     return (
         <div className="flex h-screen overflow-hidden bg-[var(--bg-primary)]">
             {/* Sidebar background decoration */}
@@ -50,7 +53,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
                 <nav className="flex-1 px-4 space-y-2 mt-4">
                     {isAdmin && clients.length > 0 && (
-                        <ClientSwitcher clients={clients} />
+                        <ClientSwitcher clients={clients} currentClientId={viewClientId} />
                     )}
                     <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white">
                         <LayoutDashboard size={20} />

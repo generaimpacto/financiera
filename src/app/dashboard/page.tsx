@@ -4,6 +4,7 @@ import { deleteTransactionAction } from './actions'
 import { RevenueChart } from '@/components/RevenueChart'
 import Link from 'next/link'
 import { DashboardClientSelector } from '@/components/DashboardClientSelector'
+import { getViewClientId } from '@/lib/viewClient'
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ clientId?: string }> }) {
     const supabase = await createClient()
@@ -31,12 +32,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     const clients = allProfiles?.filter(p => p.role === 'user') || []
 
     const params = await searchParams
+    // "Ver como cliente" (sidebar): default cuando no hay ?clientId explícito.
+    const viewClientId = isAdmin ? await getViewClientId() : ''
     let activeClientId = params.clientId
 
     if (isAdmin) {
         if (!activeClientId) {
-            // Default to the first client
-            activeClientId = clients.length > 0 ? clients[0].id : 'all'
+            activeClientId = viewClientId || (clients.length > 0 ? clients[0].id : 'all')
         }
     } else {
         activeClientId = user?.id

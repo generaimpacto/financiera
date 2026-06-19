@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, TrendingUp, TrendingDown, PercentCircle, Wallet } from 'lucide-react'
+import { getViewClientId } from '@/lib/viewClient'
 
 function formatCurrency(val: number) {
     return new Intl.NumberFormat('es-AR', {
@@ -42,17 +43,22 @@ export default async function MonthlySummaryPage() {
         commissionMap = new Map(allProfiles?.map(p => [p.id, p.commission_percentage]) || [])
     }
 
-    // Fetch ALL payments
-    const { data: payments } = await supabase
+    // "Ver como cliente": filtrar a ese cliente si está seleccionado.
+    const viewClientId = isAdmin ? await getViewClientId() : ''
+
+    let pq = supabase
         .from('payments')
         .select('amount, payment_date, user_id')
         .order('payment_date', { ascending: true })
+    if (viewClientId) pq = pq.eq('user_id', viewClientId)
+    const { data: payments } = await pq
 
-    // Fetch ALL expenses
-    const { data: expenses } = await supabase
+    let eq = supabase
         .from('expenses')
         .select('amount, expense_date, user_id')
         .order('expense_date', { ascending: true })
+    if (viewClientId) eq = eq.eq('user_id', viewClientId)
+    const { data: expenses } = await eq
 
     // Group by month
     const monthMap = new Map<string, MonthData>()

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowUpRight, ArrowDownRight, Plus, Eye, TrendingUp, TrendingDown, Scale } from 'lucide-react'
 import { DeleteMovementButton } from './DeleteMovementButton'
+import { getViewClientId } from '@/lib/viewClient'
 
 function fmt(n: number) {
     return '$ ' + Math.round(n).toLocaleString('es-AR')
@@ -42,6 +43,10 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
         nameMap = new Map(allProfiles?.map((p) => [p.id, p.business_name || `Cliente ${p.id.split('-')[0]}`]) || [])
     }
 
+    // "Ver como cliente": si hay un cliente seleccionado, filtramos a sus movimientos.
+    const viewClientId = isAdmin ? await getViewClientId() : ''
+    const viewClientName = viewClientId ? nameMap.get(viewClientId) || 'cliente' : ''
+
     const filterType = params.type === 'income' || params.type === 'expense' ? params.type : null
 
     let query = supabase
@@ -50,6 +55,7 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
         .order('movement_date', { ascending: false })
         .order('created_at', { ascending: false })
     if (filterType) query = query.eq('type', filterType)
+    if (viewClientId) query = query.eq('client_id', viewClientId)
 
     const { data } = await query
     const movements = (data || []) as Movement[]
@@ -72,7 +78,9 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
                         Movimientos
                     </h1>
                     <p className="text-secondary mt-2">
-                        Ingresos y egresos de la agencia y los clientes — {movements.length} registros
+                        {viewClientName
+                            ? `Movimientos de ${viewClientName} — ${movements.length} registros`
+                            : `Ingresos y egresos de la agencia y los clientes — ${movements.length} registros`}
                     </p>
                 </div>
                 <Link href="/dashboard/ledger/new" className="btn-primary flex items-center gap-2">
