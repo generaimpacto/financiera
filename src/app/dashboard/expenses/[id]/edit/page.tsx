@@ -109,6 +109,14 @@ export default function EditExpensePage() {
                             </div>
                         </div>
 
+                        <label className="flex items-start gap-3 rounded-lg border border-purple-500/30 bg-purple-500/5 p-4 cursor-pointer">
+                            <input type="checkbox" name="isCommissionPayment" defaultChecked={initialData.is_commission_payment} className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/30 accent-purple-500" />
+                            <span>
+                                <span className="block text-sm font-medium text-purple-200">Es un pago de comisión a la agencia</span>
+                                <span className="block text-xs text-secondary mt-0.5">Se descuenta de la comisión pendiente (no es un gasto operativo).</span>
+                            </span>
+                        </label>
+
                         <div className="pt-4 border-t border-[var(--border-color)]">
                             <button type="submit" disabled={isSaving} className="btn-primary w-full sm:w-auto !bg-red-500 hover:!bg-red-600 focus:ring-red-500">
                                 {isSaving ? (

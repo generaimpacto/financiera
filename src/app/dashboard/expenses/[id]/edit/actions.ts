@@ -28,6 +28,7 @@ export async function updateExpenseAction(formData: FormData) {
     const description = formData.get('description') as string
     const amount = formData.get('amount') as string
     const date = formData.get('date') as string
+    const isCommissionPayment = formData.get('isCommissionPayment') === 'on'
 
     if (!id || !description || !amount || !date) {
         return { error: 'Por favor, completa todos los campos.' }
@@ -46,7 +47,8 @@ export async function updateExpenseAction(formData: FormData) {
         .update({
             description: description,
             amount: parseFloat(amount),
-            expense_date: date
+            expense_date: date,
+            is_commission_payment: isCommissionPayment
         })
         .eq('id', id)
 

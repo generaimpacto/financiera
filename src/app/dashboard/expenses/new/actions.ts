@@ -9,6 +9,7 @@ export async function addExpenseAction(formData: FormData) {
     const description = formData.get('description') as string
     const amount = formData.get('amount') as string
     const date = formData.get('date') as string
+    const isCommissionPayment = formData.get('isCommissionPayment') === 'on'
     const file = formData.get('receipt') as File | null
 
     if (!description || !amount || !date) {
@@ -64,6 +65,7 @@ export async function addExpenseAction(formData: FormData) {
         description,
         amount: parseFloat(amount),
         expense_date: date,
+        is_commission_payment: isCommissionPayment,
         ...(publicUrl && { receipt_url: publicUrl })
     })
 

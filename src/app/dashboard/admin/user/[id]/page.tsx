@@ -44,11 +44,12 @@ export default async function AdminUserDashboardPage(props: { params: Promise<{ 
     // 3. Fetch ALL Expenses for Target User
     const { data: expenses } = await supabase
         .from('expenses')
-        .select('id, amount, expense_date, description')
+        .select('id, amount, expense_date, description, is_commission_payment')
         .eq('user_id', targetUserId)
 
     const totalIncome = payments?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
     const totalExpenses = expenses?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
+    const commissionPaid = (expenses || []).filter((e: any) => e.is_commission_payment).reduce((acc, c) => acc + Number(c.amount), 0)
 
     // Combine and sort transactions
     const mergedTransactions = [
@@ -69,8 +70,9 @@ export default async function AdminUserDashboardPage(props: { params: Promise<{ 
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     // 4. Calculations base on User point of view
-    const commissionToPay = (totalIncome * commissionPercentage) / 100
-    const balance = totalIncome - totalExpenses - commissionToPay
+    const commissionGenerated = (totalIncome * commissionPercentage) / 100
+    const commissionPending = commissionGenerated - commissionPaid
+    const balance = totalIncome - totalExpenses - commissionPending
 
     // 5. Fetch 6-months Data for Chart
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString()
@@ -160,12 +162,15 @@ export default async function AdminUserDashboardPage(props: { params: Promise<{ 
                         <PercentCircle size={64} className="text-purple-500" />
                     </div>
                     <div className="flex justify-between items-center mb-1 relative z-10">
-                        <p className="text-secondary font-medium">Comisión a Pagar</p>
+                        <p className="text-secondary font-medium">Comisión a cobrar (pendiente)</p>
                         <span className="bg-purple-500/20 text-purple-300 text-xs px-2 py-1 rounded font-bold">
                             {commissionPercentage}%
                         </span>
                     </div>
-                    <h3 className="text-3xl font-bold text-white relative z-10">{formatCurrency(commissionToPay)}</h3>
+                    <h3 className="text-3xl font-bold text-white relative z-10">{formatCurrency(commissionPending)}</h3>
+                    <p className="text-xs text-secondary mt-1 relative z-10">
+                        Generada {formatCurrency(commissionGenerated)} · Cobrada {formatCurrency(commissionPaid)}
+                    </p>
                 </div>
             </div>
 

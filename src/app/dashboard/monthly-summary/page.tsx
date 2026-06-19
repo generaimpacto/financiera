@@ -19,6 +19,7 @@ interface MonthData {
     income: number
     expenses: number
     commission: number
+    commissionPaid: number
     balance: number
 }
 
@@ -55,7 +56,7 @@ export default async function MonthlySummaryPage() {
 
     let eq = supabase
         .from('expenses')
-        .select('amount, expense_date, user_id')
+        .select('amount, expense_date, user_id, is_commission_payment')
         .order('expense_date', { ascending: true })
     if (viewClientId) eq = eq.eq('user_id', viewClientId)
     const { data: expenses } = await eq
@@ -69,7 +70,7 @@ export default async function MonthlySummaryPage() {
         const label = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(d)
 
         if (!monthMap.has(key)) {
-            monthMap.set(key, { key, label, income: 0, expenses: 0, commission: 0, balance: 0 })
+            monthMap.set(key, { key, label, income: 0, expenses: 0, commission: 0, commissionPaid: 0, balance: 0 })
         }
         const m = monthMap.get(key)!
         const amt = Number(p.amount)
@@ -89,10 +90,12 @@ export default async function MonthlySummaryPage() {
         const label = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(d)
 
         if (!monthMap.has(key)) {
-            monthMap.set(key, { key, label, income: 0, expenses: 0, commission: 0, balance: 0 })
+            monthMap.set(key, { key, label, income: 0, expenses: 0, commission: 0, commissionPaid: 0, balance: 0 })
         }
         const m = monthMap.get(key)!
         m.expenses += Number(e.amount)
+        // Los pagos de comisión se restan de la comisión pendiente del mes (no doble cuentan).
+        if ((e as any).is_commission_payment) m.commissionPaid += Number(e.amount)
     })
 
     // Calculate balances
@@ -103,7 +106,8 @@ export default async function MonthlySummaryPage() {
         if (isAdmin) {
             m.balance = m.commission // Admin's balance = commissions earned
         } else {
-            m.balance = m.income - m.expenses - m.commission
+            // Egresos incluyen todo; restamos solo la comisión pendiente (generada − cobrada).
+            m.balance = m.income - m.expenses - (m.commission - m.commissionPaid)
         }
     })
 

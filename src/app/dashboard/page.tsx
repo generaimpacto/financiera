@@ -53,7 +53,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     // 3. Fetch ALL Expenses
     const { data: expenses } = await supabase
         .from('expenses')
-        .select('id, amount, expense_date, description, user_id')
+        .select('id, amount, expense_date, description, user_id, is_commission_payment')
 
     // Filter data based on selected client (if activeClientId is not 'all')
     const showAll = activeClientId === 'all'
@@ -61,6 +61,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     const filteredExpenses = showAll ? (expenses || []) : (expenses || []).filter(e => e.user_id === activeClientId)
 
     const totalExpenses = filteredExpenses.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
+    // Pagos de comisión que el/los cliente(s) ya hicieron a la agencia.
+    const commissionPaid = filteredExpenses.filter((e: any) => e.is_commission_payment).reduce((acc, c) => acc + Number(c.amount), 0)
 
     // Combine and sort transactions
     const mergedTransactions = [
@@ -99,8 +101,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         totalCommissions = (totalIncome * commissionPercentage) / 100
     }
 
-    const commissionToPay = totalCommissions
-    const balance = isAdmin ? totalCommissions : (totalIncome - totalExpenses - commissionToPay)
+    // Comisión: generada (sobre ingresos) − cobrada (pagos de comisión) = pendiente.
+    const commissionGenerated = totalCommissions
+    const commissionPending = commissionGenerated - commissionPaid
+    const balance = isAdmin ? totalCommissions : (totalIncome - totalExpenses - commissionPending)
 
     // 5. Fetch 6-months Data for Chart
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString()
@@ -221,12 +225,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         <PercentCircle size={64} className="text-purple-500" />
                     </div>
                     <div className="flex justify-between items-center mb-1 relative z-10">
-                        <p className="text-secondary font-medium">{isAdmin ? 'Comisiones a Cobrar' : 'Comisión a Pagar'}</p>
+                        <p className="text-secondary font-medium">{isAdmin ? 'Comisiones a Cobrar' : 'Comisión a Pagar'} <span className="text-xs opacity-70">(pendiente)</span></p>
                         <span className="bg-purple-500/20 text-purple-300 text-xs px-2 py-1 rounded font-bold">
                             {displayCommissionPct}%
                         </span>
                     </div>
-                    <h3 className="text-3xl font-bold text-white relative z-10">{formatCurrency(commissionToPay)}</h3>
+                    <h3 className="text-3xl font-bold text-white relative z-10">{formatCurrency(commissionPending)}</h3>
+                    <p className="text-xs text-secondary mt-1 relative z-10">
+                        Generada {formatCurrency(commissionGenerated)} · Cobrada {formatCurrency(commissionPaid)}
+                    </p>
                 </div>
             </div>
 

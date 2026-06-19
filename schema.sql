@@ -178,3 +178,6 @@ CREATE TABLE IF NOT EXISTS public.movements (
 );
 ALTER TABLE public.movements ENABLE ROW LEVEL SECURITY;
 -- SELECT: admin todo; cliente lo suyo. INSERT/UPDATE/DELETE: solo admin.
+
+-- Egreso marcado como pago de comisión del cliente a la agencia.
+ALTER TABLE public.expenses ADD COLUMN IF NOT EXISTS is_commission_payment BOOLEAN NOT NULL DEFAULT false;

@@ -132,6 +132,14 @@ function ExpenseFormWrapper() {
                         </div>
                     </div>
 
+                    <label className="flex items-start gap-3 rounded-lg border border-purple-500/30 bg-purple-500/5 p-4 cursor-pointer">
+                        <input type="checkbox" name="isCommissionPayment" className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/30 accent-purple-500" />
+                        <span>
+                            <span className="block text-sm font-medium text-purple-200">Es un pago de comisión a la agencia</span>
+                            <span className="block text-xs text-secondary mt-0.5">Marcá esto cuando el cliente te paga la comisión. Se descuenta de la comisión pendiente (no es un gasto operativo).</span>
+                        </span>
+                    </label>
+
                     <div>
                         <label className="label flex justify-between">
                             <span>Comprobante (Imagen)</span>
