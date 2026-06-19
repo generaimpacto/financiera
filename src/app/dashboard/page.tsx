@@ -6,8 +6,9 @@ import Link from 'next/link'
 import { DashboardClientSelector } from '@/components/DashboardClientSelector'
 import { getViewClientId } from '@/lib/viewClient'
 import { getSession } from '@/lib/session'
+import { DateRangeFilter } from '@/components/DateRangeFilter'
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ clientId?: string }> }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ clientId?: string; desde?: string; hasta?: string }> }) {
     const supabase = await createClient()
     const { user, profile } = await getSession()
 
@@ -38,16 +39,26 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         activeClientId = user?.id
     }
 
-    // 2. Fetch ALL Payments (Income)
-    const { data: payments } = await supabase
+    // Filtro por rango de fechas (afecta tarjetas y movimientos recientes).
+    const desde = params.desde || ''
+    const hasta = params.hasta || ''
+
+    // 2. Fetch Payments (Income) — con filtro de fechas
+    let payQ = supabase
         .from('payments')
         .select('id, amount, payment_date, client_name, user_id')
         .order('payment_date', { ascending: false })
+    if (desde) payQ = payQ.gte('payment_date', desde)
+    if (hasta) payQ = payQ.lte('payment_date', hasta)
+    const { data: payments } = await payQ
 
-    // 3. Fetch ALL Expenses
-    const { data: expenses } = await supabase
+    // 3. Fetch Expenses — con filtro de fechas
+    let expQ = supabase
         .from('expenses')
         .select('id, amount, expense_date, description, user_id, is_commission_payment')
+    if (desde) expQ = expQ.gte('expense_date', desde)
+    if (hasta) expQ = expQ.lte('expense_date', hasta)
+    const { data: expenses } = await expQ
 
     // Filter data based on selected client (if activeClientId is not 'all')
     const showAll = activeClientId === 'all'
@@ -173,6 +184,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         {isAdmin && clients.length > 0 && (
                             <DashboardClientSelector clients={clients} activeClientId={activeClientId || ''} />
                         )}
+                        <DateRangeFilter />
                         <Link
                             href="/dashboard/monthly-summary"
                             className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors text-sm font-medium text-gray-300 hover:text-white"

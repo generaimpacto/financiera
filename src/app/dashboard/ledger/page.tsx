@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowUpRight, ArrowDownRight, Plus, Eye, TrendingUp, TrendingDown, Scale } from 'lucide-react'
 import { DeleteMovementButton } from './DeleteMovementButton'
+import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { getViewClientId } from '@/lib/viewClient'
 import { getSession } from '@/lib/session'
 
@@ -29,7 +30,7 @@ type Movement = {
     created_by: string
 }
 
-export default async function LedgerPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
+export default async function LedgerPage({ searchParams }: { searchParams: Promise<{ type?: string; desde?: string; hasta?: string }> }) {
     const params = await searchParams
     const supabase = await createClient()
     const { user, profile } = await getSession()
@@ -47,6 +48,8 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
     const viewClientName = viewClientId ? nameMap.get(viewClientId) || 'cliente' : ''
 
     const filterType = params.type === 'income' || params.type === 'expense' ? params.type : null
+    const desde = params.desde || ''
+    const hasta = params.hasta || ''
 
     let query = supabase
         .from('movements')
@@ -55,6 +58,8 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
         .order('created_at', { ascending: false })
     if (filterType) query = query.eq('type', filterType)
     if (viewClientId) query = query.eq('client_id', viewClientId)
+    if (desde) query = query.gte('movement_date', desde)
+    if (hasta) query = query.lte('movement_date', hasta)
 
     const { data } = await query
     const movements = (data || []) as Movement[]
@@ -62,6 +67,10 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
     const ingresos = movements.filter((m) => m.type === 'income').reduce((s, m) => s + Number(m.amount), 0)
     const egresos = movements.filter((m) => m.type === 'expense').reduce((s, m) => s + Number(m.amount), 0)
     const neto = ingresos - egresos
+
+    // Preserva el rango de fechas al cambiar el filtro de tipo.
+    const dateParams = [desde && `desde=${desde}`, hasta && `hasta=${hasta}`].filter(Boolean).join('&')
+    const withDates = (q: string) => (dateParams ? (q ? `${q}&${dateParams}` : `?${dateParams}`) : q)
 
     const stats = [
         { label: 'Ingresos', value: ingresos, border: 'border-t-emerald-500', text: 'text-emerald-400', Icon: TrendingUp },
@@ -100,11 +109,14 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
                 ))}
             </div>
 
-            {/* Filtro por tipo */}
-            <div className="mb-4 flex gap-2 text-sm">
-                <Link href="/dashboard/ledger" className={`px-3 py-1.5 rounded-lg ${!filterType ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}>Todos</Link>
-                <Link href="/dashboard/ledger?type=income" className={`px-3 py-1.5 rounded-lg ${filterType === 'income' ? 'bg-emerald-500/15 text-emerald-300' : 'text-gray-400 hover:bg-white/5'}`}>Ingresos</Link>
-                <Link href="/dashboard/ledger?type=expense" className={`px-3 py-1.5 rounded-lg ${filterType === 'expense' ? 'bg-red-500/15 text-red-300' : 'text-gray-400 hover:bg-white/5'}`}>Egresos</Link>
+            {/* Filtros: tipo + rango de fechas */}
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex gap-2 text-sm">
+                    <Link href={`/dashboard/ledger${withDates('')}`} className={`px-3 py-1.5 rounded-lg ${!filterType ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}>Todos</Link>
+                    <Link href={`/dashboard/ledger${withDates('?type=income')}`} className={`px-3 py-1.5 rounded-lg ${filterType === 'income' ? 'bg-emerald-500/15 text-emerald-300' : 'text-gray-400 hover:bg-white/5'}`}>Ingresos</Link>
+                    <Link href={`/dashboard/ledger${withDates('?type=expense')}`} className={`px-3 py-1.5 rounded-lg ${filterType === 'expense' ? 'bg-red-500/15 text-red-300' : 'text-gray-400 hover:bg-white/5'}`}>Egresos</Link>
+                </div>
+                <DateRangeFilter />
             </div>
 
             <div className="glass-panel overflow-hidden">

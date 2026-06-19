@@ -5,12 +5,13 @@ import { ArrowUpRight, ArrowDownRight, Eye, ChevronLeft, ChevronRight, Pencil, T
 import { deleteTransactionAction } from '@/app/dashboard/actions'
 import { getViewClientId } from '@/lib/viewClient'
 import { getSession } from '@/lib/session'
+import { DateRangeFilter } from '@/components/DateRangeFilter'
 
 function formatCurrency(n: number) {
     return '$ ' + Math.round(n).toLocaleString('es-AR')
 }
 
-export default async function MovementsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+export default async function MovementsPage({ searchParams }: { searchParams: Promise<{ page?: string; desde?: string; hasta?: string }> }) {
     const params = await searchParams
     const supabase = await createClient()
     const { user, profile } = await getSession()
@@ -26,6 +27,8 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
 
     // "Ver como cliente": filtrar a ese cliente si está seleccionado.
     const viewClientId = isAdmin ? await getViewClientId() : ''
+    const desde = params.desde || ''
+    const hasta = params.hasta || ''
 
     // Fetch payments
     let pq = supabase
@@ -33,6 +36,8 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
         .select('id, amount, payment_date, client_name, user_id, receipt_url')
         .order('payment_date', { ascending: false })
     if (viewClientId) pq = pq.eq('user_id', viewClientId)
+    if (desde) pq = pq.gte('payment_date', desde)
+    if (hasta) pq = pq.lte('payment_date', hasta)
     const { data: payments } = await pq
 
     // Fetch expenses
@@ -41,6 +46,8 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
         .select('id, amount, expense_date, description, user_id, receipt_url')
         .order('expense_date', { ascending: false })
     if (viewClientId) eq = eq.eq('user_id', viewClientId)
+    if (desde) eq = eq.gte('expense_date', desde)
+    if (hasta) eq = eq.lte('expense_date', hasta)
     const { data: expenses } = await eq
 
     // Merge and sort
@@ -62,14 +69,18 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
     const page = Math.max(1, parseInt(params.page || '1'))
     const totalPages = Math.ceil(all.length / perPage)
     const paginated = all.slice((page - 1) * perPage, page * perPage)
+    const dq = [desde && `desde=${desde}`, hasta && `hasta=${hasta}`].filter(Boolean).join('&')
 
     return (
         <div className="animate-fade-in max-w-5xl mx-auto">
-            <header className="mb-8">
-                <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-                    Comprobantes
-                </h1>
-                <p className="text-secondary mt-2">Pagos y egresos con comprobante — {all.length} registros</p>
+            <header className="mb-8 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                        Comprobantes
+                    </h1>
+                    <p className="text-secondary mt-2">Pagos y egresos con comprobante — {all.length} registros</p>
+                </div>
+                <DateRangeFilter />
             </header>
 
             <div className="glass-panel overflow-hidden">
@@ -149,7 +160,7 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
                         <div className="flex gap-2">
                             {page > 1 && (
                                 <Link
-                                    href={`/dashboard/movements?page=${page - 1}`}
+                                    href={`/dashboard/movements?page=${page - 1}${dq ? `&${dq}` : ''}`}
                                     className="flex items-center gap-1 px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 rounded-lg transition-colors text-gray-300"
                                 >
                                     <ChevronLeft size={14} /> Anterior
@@ -157,7 +168,7 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
                             )}
                             {page < totalPages && (
                                 <Link
-                                    href={`/dashboard/movements?page=${page + 1}`}
+                                    href={`/dashboard/movements?page=${page + 1}${dq ? `&${dq}` : ''}`}
                                     className="flex items-center gap-1 px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 rounded-lg transition-colors text-gray-300"
                                 >
                                     Siguiente <ChevronRight size={14} />
