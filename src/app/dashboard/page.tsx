@@ -148,6 +148,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
     const activeClientName = clients.find(c => c.id === activeClientId)?.business_name || `Cliente ${activeClientId?.split('-')[0]}`
 
+    // % de comisión a mostrar en el badge: para admin viendo un cliente, la del cliente
+    // (no la propia, que es 0). Para "Todos" o no-admin, la del perfil logueado.
+    const displayCommissionPct = isAdmin
+        ? (showAll ? commissionPercentage : (Number(commissionMap.get(activeClientId ?? '')) || 0))
+        : commissionPercentage
+
     return (
         <div className="animate-fade-in">
             <header className="mb-8">
@@ -217,7 +223,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     <div className="flex justify-between items-center mb-1 relative z-10">
                         <p className="text-secondary font-medium">{isAdmin ? 'Comisiones a Cobrar' : 'Comisión a Pagar'}</p>
                         <span className="bg-purple-500/20 text-purple-300 text-xs px-2 py-1 rounded font-bold">
-                            {commissionPercentage}%
+                            {displayCommissionPct}%
                         </span>
                     </div>
                     <h3 className="text-3xl font-bold text-white relative z-10">{formatCurrency(commissionToPay)}</h3>
