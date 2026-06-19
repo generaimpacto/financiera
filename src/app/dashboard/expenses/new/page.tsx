@@ -1,36 +1,76 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { addExpenseAction } from './actions'
-import { Upload, FileImage, Loader2, Users } from 'lucide-react'
+import { Upload, FileImage, Loader2, Users, Sparkles } from 'lucide-react'
 
 interface ClientOption {
     id: string
     business_name: string | null
 }
 
-export default function NewExpensePage({ searchParams }: { searchParams: any }) {
-    return <ExpenseFormWrapper />
+function fmt(n: number) {
+    return '$ ' + Math.round(n).toLocaleString('es-AR')
 }
 
-function ExpenseFormWrapper() {
+export default function NewExpensePage() {
     const [isUploading, setIsUploading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
     const [clients, setClients] = useState<ClientOption[]>([])
     const [isAdmin, setIsAdmin] = useState(false)
-    const [loaded, setLoaded] = useState(false)
 
-    // Fetch admin status and client list on mount
-    if (!loaded && typeof window !== 'undefined') {
+    // Estado controlado
+    const [targetUserId, setTargetUserId] = useState('')
+    const [amount, setAmount] = useState('')
+    const [description, setDescription] = useState('')
+    const [isCommissionPayment, setIsCommissionPayment] = useState(false)
+
+    // Comisión pendiente del cliente seleccionado
+    const [commission, setCommission] = useState<{ pending: number; generated: number; paid: number } | null>(null)
+
+    useEffect(() => {
         fetch('/api/admin-clients')
-            .then(res => res.json())
-            .then(data => {
+            .then((res) => res.json())
+            .then((data) => {
                 setIsAdmin(data.isAdmin || false)
                 setClients(data.clients || [])
-                setLoaded(true)
             })
-            .catch(() => setLoaded(true))
+            .catch(() => {})
+    }, [])
+
+    // Al cambiar de cliente, traer su comisión pendiente.
+    useEffect(() => {
+        if (!isAdmin || !targetUserId) {
+            setCommission(null)
+            return
+        }
+        let cancel = false
+        fetch(`/api/client-commission?clientId=${targetUserId}`)
+            .then((r) => r.json())
+            .then((d) => {
+                if (!cancel && typeof d.pending === 'number') setCommission(d)
+            })
+            .catch(() => {})
+        return () => {
+            cancel = true
+        }
+    }, [targetUserId, isAdmin])
+
+    const clientName = clients.find((c) => c.id === targetUserId)?.business_name || 'el cliente'
+    const pending = commission?.pending ?? 0
+
+    function registrarPagoComision() {
+        setIsCommissionPayment(true)
+        setAmount(String(Math.round(pending * 100) / 100))
+        if (!description.trim()) setDescription('Pago de comisión')
+    }
+
+    function onToggleCommission(checked: boolean) {
+        setIsCommissionPayment(checked)
+        if (checked && pending > 0 && !amount) {
+            setAmount(String(Math.round(pending * 100) / 100))
+        }
     }
 
     async function handleSubmit(formData: FormData) {
@@ -43,9 +83,7 @@ function ExpenseFormWrapper() {
                 setIsUploading(false)
             }
         } catch (err: any) {
-            if (err.digest?.startsWith('NEXT_REDIRECT') || err.message === 'NEXT_REDIRECT') {
-                throw err
-            }
+            if (err.digest?.startsWith('NEXT_REDIRECT') || err.message === 'NEXT_REDIRECT') throw err
             setError(err.message || 'Se produjo un error al cargar el egreso.')
             setIsUploading(false)
         }
@@ -57,13 +95,13 @@ function ExpenseFormWrapper() {
                 <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-red-400 to-orange-400">
                     Registrar Egreso
                 </h1>
-                <p className="text-secondary mt-2">Añade un nuevo gasto{isAdmin ? ' a la cuenta de un cliente' : ' a tu cuenta'} (comprobante opcional)</p>
+                <p className="text-secondary mt-2">
+                    Añade un nuevo gasto{isAdmin ? ' a la cuenta de un cliente' : ' a tu cuenta'} (comprobante opcional)
+                </p>
             </header>
 
             {error && (
-                <div className="bg-red-500/10 border border-red-500/50 text-red-200 p-4 rounded-lg mb-6">
-                    {error}
-                </div>
+                <div role="alert" className="bg-red-500/10 border border-red-500/50 text-red-200 p-4 rounded-lg mb-6">{error}</div>
             )}
 
             <div className="glass-panel p-8">
@@ -78,11 +116,13 @@ function ExpenseFormWrapper() {
                             <select
                                 id="targetUserId"
                                 name="targetUserId"
+                                value={targetUserId}
+                                onChange={(e) => setTargetUserId(e.target.value)}
                                 className="input-field bg-black/30 text-white border-indigo-500/30 mt-1"
                                 required
                             >
                                 <option value="">— Seleccionar cliente —</option>
-                                {clients.map(c => (
+                                {clients.map((c) => (
                                     <option key={c.id} value={c.id}>
                                         {c.business_name || `Cliente ${c.id.split('-')[0]}`}
                                     </option>
@@ -92,6 +132,44 @@ function ExpenseFormWrapper() {
                         </div>
                     )}
 
+                    {/* Comisión: recomendación + checkbox (justo después de elegir cliente) */}
+                    <div className="rounded-lg border border-purple-500/30 bg-purple-500/5 p-4 space-y-3">
+                        {isAdmin && targetUserId && pending > 0 && !isCommissionPayment && (
+                            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-purple-500/10 border border-purple-500/30 p-3">
+                                <div className="text-sm flex items-start gap-2">
+                                    <Sparkles size={16} className="text-purple-300 mt-0.5 shrink-0" />
+                                    <span className="text-purple-100">
+                                        {clientName} tiene <b className="text-white">{fmt(pending)}</b> de comisión pendiente.
+                                        <span className="block text-xs text-secondary">¿Este egreso es el pago de la comisión?</span>
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={registrarPagoComision}
+                                    className="shrink-0 text-xs font-semibold bg-purple-500/30 text-purple-100 px-3 py-1.5 rounded-lg hover:bg-purple-500/50 transition-colors"
+                                >
+                                    Registrar pago ({fmt(pending)})
+                                </button>
+                            </div>
+                        )}
+
+                        <label className="flex items-start gap-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                name="isCommissionPayment"
+                                checked={isCommissionPayment}
+                                onChange={(e) => onToggleCommission(e.target.checked)}
+                                className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/30 accent-purple-500"
+                            />
+                            <span>
+                                <span className="block text-sm font-medium text-purple-200">Es un pago de comisión a la agencia</span>
+                                <span className="block text-xs text-secondary mt-0.5">
+                                    Marcá esto cuando el cliente te paga la comisión. Se descuenta de la comisión pendiente (no es un gasto operativo).
+                                </span>
+                            </span>
+                        </label>
+                    </div>
+
                     <div>
                         <label htmlFor="description" className="label">Descripción del Gasto</label>
                         <input
@@ -99,6 +177,8 @@ function ExpenseFormWrapper() {
                             name="description"
                             type="text"
                             required
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
                             placeholder="Ej. Pago de servicios, Proveedor X..."
                             className="input-field"
                         />
@@ -112,8 +192,10 @@ function ExpenseFormWrapper() {
                                 name="amount"
                                 type="number"
                                 step="0.01"
-                                min="0"
+                                min="0.01"
                                 required
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
                                 placeholder="0.00"
                                 className="input-field"
                             />
@@ -126,19 +208,11 @@ function ExpenseFormWrapper() {
                                 name="date"
                                 type="date"
                                 required
-                                defaultValue={new Date().toISOString().split('T')[0]}
+                                defaultValue={new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date())}
                                 className="input-field"
                             />
                         </div>
                     </div>
-
-                    <label className="flex items-start gap-3 rounded-lg border border-purple-500/30 bg-purple-500/5 p-4 cursor-pointer">
-                        <input type="checkbox" name="isCommissionPayment" className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/30 accent-purple-500" />
-                        <span>
-                            <span className="block text-sm font-medium text-purple-200">Es un pago de comisión a la agencia</span>
-                            <span className="block text-xs text-secondary mt-0.5">Marcá esto cuando el cliente te paga la comisión. Se descuenta de la comisión pendiente (no es un gasto operativo).</span>
-                        </span>
-                    </label>
 
                     <div>
                         <label className="label flex justify-between">
@@ -151,7 +225,7 @@ function ExpenseFormWrapper() {
                                 <div className="mt-4 flex text-sm leading-6 text-gray-400 justify-center">
                                     <label
                                         htmlFor="receipt"
-                                        className="relative cursor-pointer rounded-md bg-transparent font-semibold text-[var(--accent-color)] focus-within:outline-none focus-within:ring-2 focus-within:ring-[var(--accent-color)] focus-within:ring-offset-2 focus-within:ring-offset-gray-900 hover:text-[var(--accent-hover)]"
+                                        className="relative cursor-pointer rounded-md bg-transparent font-semibold text-[var(--accent-color)] hover:text-[var(--accent-hover)]"
                                     >
                                         <span>{selectedFileName ? 'Cambiar archivo' : 'Sube un archivo'}</span>
                                         <input
@@ -183,7 +257,7 @@ function ExpenseFormWrapper() {
                             {isUploading ? (
                                 <>
                                     <Loader2 className="animate-spin mr-2" size={20} />
-                                    Guardando y subiendo imagen...
+                                    Guardando...
                                 </>
                             ) : (
                                 <>
