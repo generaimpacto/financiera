@@ -5,17 +5,11 @@ import { signOutAction } from '@/app/auth/actions'
 import { createClient } from '@/utils/supabase/server'
 import { ClientSwitcher } from '@/components/ClientSwitcher'
 import { getViewClientId } from '@/lib/viewClient'
+import { getSession } from '@/lib/session'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    // Fetch user role
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user?.id)
-        .single()
+    const { user, profile } = await getSession()
 
     const isAdmin = profile?.role === 'admin'
 

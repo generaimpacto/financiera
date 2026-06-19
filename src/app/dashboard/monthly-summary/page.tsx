@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, TrendingUp, TrendingDown, PercentCircle, Wallet } from 'lucide-react'
 import { getViewClientId } from '@/lib/viewClient'
+import { getSession } from '@/lib/session'
 
 function formatCurrency(val: number) {
     return new Intl.NumberFormat('es-AR', {
@@ -25,14 +26,8 @@ interface MonthData {
 
 export default async function MonthlySummaryPage() {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { user, profile } = await getSession()
     if (!user) redirect('/login')
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, commission_percentage, business_name')
-        .eq('id', user.id)
-        .single()
 
     const commissionPercentage = profile?.commission_percentage || 0
     const isAdmin = profile?.role === 'admin'

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowUpRight, ArrowDownRight, Eye, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
 import { deleteTransactionAction } from '@/app/dashboard/actions'
 import { getViewClientId } from '@/lib/viewClient'
+import { getSession } from '@/lib/session'
 
 function formatCurrency(n: number) {
     return '$ ' + Math.round(n).toLocaleString('es-AR')
@@ -12,10 +13,8 @@ function formatCurrency(n: number) {
 export default async function MovementsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
     const params = await searchParams
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { user, profile } = await getSession()
     if (!user) redirect('/login')
-
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
     const isAdmin = profile?.role === 'admin'
 
     // Build name map for admin

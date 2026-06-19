@@ -5,21 +5,15 @@ import { RevenueChart } from '@/components/RevenueChart'
 import Link from 'next/link'
 import { DashboardClientSelector } from '@/components/DashboardClientSelector'
 import { getViewClientId } from '@/lib/viewClient'
+import { getSession } from '@/lib/session'
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ clientId?: string }> }) {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { user, profile } = await getSession()
 
     // Date calculations for current month
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-
-    // 1. Fetch Profile (for role and commission percentage)
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, commission_percentage, business_name')
-        .eq('id', user?.id)
-        .single()
 
     const commissionPercentage = profile?.commission_percentage || 0
     const isAdmin = profile?.role === 'admin'

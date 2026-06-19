@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowUpRight, ArrowDownRight, Plus, Eye, TrendingUp, TrendingDown, Scale } from 'lucide-react'
 import { DeleteMovementButton } from './DeleteMovementButton'
 import { getViewClientId } from '@/lib/viewClient'
+import { getSession } from '@/lib/session'
 
 function fmt(n: number) {
     return '$ ' + Math.round(n).toLocaleString('es-AR')
@@ -31,10 +32,8 @@ type Movement = {
 export default async function LedgerPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
     const params = await searchParams
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { user, profile } = await getSession()
     if (!user) redirect('/login')
-
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
     const isAdmin = profile?.role === 'admin'
 
     let nameMap = new Map<string, string>()
